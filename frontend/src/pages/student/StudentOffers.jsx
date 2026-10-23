@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import {
     acceptOffer as acceptOfferOnChain,
@@ -14,6 +15,7 @@ import {
 import MeshBackground from "../../components/common/MeshBackground";
 
 function StudentOffers() {
+    const navigate = useNavigate();
 
     const [offers, setOffers] = useState([]);
 
@@ -146,6 +148,30 @@ function StudentOffers() {
                 {/* ================= HEADER ================= */}
 
                 <div className="mb-8">
+                    <div className="mb-4 flex items-center justify-between">
+                        <button
+                            type="button"
+                            onClick={() => navigate(-1)}
+                            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition cursor-pointer ${
+                                darkMode
+                                    ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-sm"
+                            }`}
+                        >
+                            ← Back
+                        </button>
+
+                        <Link
+                            to="/student/dashboard"
+                            className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition ${
+                                darkMode
+                                    ? "border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
+                                    : "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 shadow-sm"
+                            }`}
+                        >
+                            <span>👤</span> Profile Dashboard
+                        </Link>
+                    </div>
 
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-500">
                         Employment

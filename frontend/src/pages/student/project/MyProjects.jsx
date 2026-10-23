@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getStudentProjects } from "../../../services/projectService";
 import { getStudentRequests } from "../../../services/requestService";
 import ApplicantManagerAbi from "../../../abhi/ApplicantManager.json";
@@ -19,6 +19,7 @@ const normalizeProjectId = (value) => {
 };
 
 const getStatusLabel = (status) => {
+    if (typeof status === "string") return status.toUpperCase();
     switch (status) {
         case 0:
             return "PENDING";
@@ -34,6 +35,7 @@ const getStatusLabel = (status) => {
 };
 
 const MyProjects = () => {
+    const navigate = useNavigate();
     const [projects, setProjects] = useState([]);
     const [requestHistory, setRequestHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -48,83 +50,57 @@ const MyProjects = () => {
             setLoading(true);
             setError("");
 
-            const userStr = localStorage.getItem("user");
-            const walletAddress = userStr ? JSON.parse(userStr).walletAddress : null;
-
             const [studentProjects, studentRequests] = await Promise.all([
                 getStudentProjects().catch(() => []),
-                getStudentRequests().catch(() => [])
+                getMyRequests().catch(() => [])
             ]);
 
             const projectList = Array.isArray(studentProjects) ? studentProjects : [];
-            const requests = Array.isArray(studentRequests) ? studentRequests : [];
-
-            let blockchainRecords = [];
-
-            if (walletAddress) {
-                try {
-                    const provider = new ethers.JsonRpcProvider(import.meta.env.VITE_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com");
-                    const contract = new ethers.Contract(
-                        import.meta.env.VITE_APPLICANT_MANAGER_ADDRESS,
-                        ApplicantManagerAbi.abi,
-                        provider
-                    );
-
-                    blockchainRecords = await Promise.all(
-                        projectList.map(async (project) => {
-                            const pid = normalizeProjectId(project.githubHash || project.projectHash);
-                            if (!pid) return { projectId: project._id, history: [] };
-
-                            try {
-                                const verifications = await contract.getProjectVerifications(pid);
-                                return {
-                                    projectId: project._id,
-                                    projectHash: pid,
-                                    history: (verifications || []).map((item) => ({
-                                        verifier: item.verifier,
-                                        verifiedAt: Number(item.verifiedAt),
-                                        revoked: Boolean(item.revoked),
-                                        status: item.revoked ? "REVOKED" : "VERIFIED"
-                                    }))
-                                };
-                            } catch (chainErr) {
-                                console.warn("Blockchain verification fetch failed for project:", project.projectName, chainErr);
-                                return { projectId: project._id, projectHash: pid, history: [] };
-                            }
-                        })
-                    );
-                } catch (chainErr) {
-                    console.error("Project verification history fetch failed:", chainErr);
-                }
-            }
-
-            const projectMap = new Map(blockchainRecords.map((entry) => [entry.projectId, entry]));
+            const rawRequests = Array.isArray(studentRequests) ? studentRequests : [];
+            const requests = rawRequests.filter(
+                (req) => req.requestType === "project" || req.project
+            );
 
             const enrichedProjects = projectList.map((project) => {
                 const projectHash = normalizeProjectId(project.githubHash || project.projectHash);
-                const verificationEntries = (projectMap.get(project._id)?.history || []).map((entry) => ({
-                    ...entry,
-                    type: "BLOCKCHAIN",
-                    label: entry.revoked ? "REVOKED" : "VERIFIED"
+                const projectIdStr = String(project._id || "");
+
+                const matchingRequests = requests.filter((req) => {
+                    const reqProjId = String(req.project?._id || req.project || "");
+                    const reqHash = normalizeProjectId(req.credentialHash);
+                    return (reqProjId && reqProjId === projectIdStr) || (reqHash && reqHash === projectHash);
+                });
+
+                const requestEntries = matchingRequests.map((req) => ({
+                    type: "REQUEST",
+                    label: getStatusLabel(req.status),
+                    requestId: req.blockchainRequestId || req._id,
+                    expectedVerifier: req.organisation?.organisationName || req.organisation?.email || "Organisation",
+                    verifier: req.organisation?.organisationName || req.organisation?.email,
+                    status: req.status,
+                    createdAt: req.createdAt ? Math.floor(new Date(req.createdAt).getTime() / 1000) : null,
+                    verifiedAt: req.updatedAt ? Math.floor(new Date(req.updatedAt).getTime() / 1000) : null,
+                    reason: req.rejectionReason || ""
                 }));
 
-                const requestEntries = requests
-                    .filter((req) => normalizeProjectId(req.credentialHash) === projectHash)
-                    .map((req) => ({
-                        type: "REQUEST",
-                        label: getStatusLabel(req.status),
-                        requestId: req.id,
-                        expectedVerifier: req.expectedVerifier,
-                        status: req.status,
-                        createdAt: Number(req.createdAt),
-                        expiresAt: Number(req.expiresAt),
-                        reason: ""
-                    }));
+                const isVerified = Boolean(
+                    project.isVerified ||
+                    project.status === "APPROVED" ||
+                    matchingRequests.some((r) => String(r.status).toUpperCase() === "APPROVED")
+                );
+
+                const onChainRegistered = Boolean(
+                    project.onChainRegistered ||
+                    project.txHash ||
+                    isVerified
+                );
 
                 return {
                     ...project,
                     projectHash,
-                    verificationHistory: [...verificationEntries, ...requestEntries]
+                    isVerified,
+                    onChainRegistered,
+                    verificationHistory: requestEntries.length > 0 ? requestEntries : (project.verificationHistory || [])
                 };
             });
 
@@ -153,6 +129,32 @@ const MyProjects = () => {
             <MeshBackground darkMode={darkMode} />
 
             <div className="relative z-10 mx-auto max-w-6xl">
+                {/* Top Navigation Action Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition cursor-pointer ${
+                            darkMode
+                                ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-sm"
+                        }`}
+                    >
+                        ← Back
+                    </button>
+                    <Link
+                        to="/student/dashboard"
+                        className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition ${
+                            darkMode
+                                ? "border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
+                                : "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 shadow-sm"
+                        }`}
+                    >
+                        <span>👤</span> Profile Dashboard
+                    </Link>
+                </div>
+
+                {/* Header */}
                 <div
                     className={`mb-8 rounded-3xl border p-7 backdrop-blur-xl ${
                         darkMode ? "border-white/10 bg-white/[0.04]" : "border-slate-200 bg-white/85 shadow-sm"
@@ -165,35 +167,51 @@ const MyProjects = () => {
                             </p>
                             <h1 className="mt-2 text-3xl font-bold tracking-tight">My Projects</h1>
                             <p className="mt-2 text-sm text-slate-400">
-                                Track blockchain registration and verification history for every project.
+                                Manage your projects and request verification from organisations.
                             </p>
                         </div>
 
-                        <Link
-                            to="/student/project/add"
-                            className="rounded-xl bg-violet-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-violet-500"
-                        >
-                            + Add Project
-                        </Link>
+                        <div className="flex items-center gap-3">
+                            <Link
+                                to="/student/project-history"
+                                className={`rounded-xl border px-4 py-2.5 text-xs font-semibold transition ${
+                                    darkMode
+                                        ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                }`}
+                            >
+                                📜 Project History
+                            </Link>
+                            <Link
+                                to="/student/project/add"
+                                className="rounded-xl bg-violet-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-violet-500 shadow-lg shadow-violet-600/30"
+                            >
+                                + Add Project
+                            </Link>
+                        </div>
                     </div>
                 </div>
 
+                {/* My Verification Requests */}
                 {requestHistory.length > 0 && (
-                    <div className={`mb-8 rounded-3xl border p-6 ${darkMode ? "border-white/10 bg-white/[0.04]" : "border-slate-200 bg-white/85"}`}>
+                    <div className={`mb-8 rounded-3xl border p-6 ${darkMode ? "border-white/10 bg-white/[0.04]" : "border-slate-200 bg-white/85 shadow-sm"}`}>
                         <h2 className="mb-4 text-xl font-bold">My Verification Requests</h2>
                         <div className="grid gap-4 md:grid-cols-2">
-                            {requestHistory.map((request) => {
+                            {requestHistory.map((request, idx) => {
                                 const requestStatus = getStatusLabel(request.status);
+                                const reqId = request.blockchainRequestId || request._id || idx + 1;
+                                const verifierName = request.organisation?.organisationName || request.organisation?.email || request.expectedVerifier || "Organisation";
+                                const createdDate = request.createdAt ? new Date(request.createdAt).toLocaleString() : "—";
                                 return (
-                                    <div key={request.id} className={`rounded-2xl border p-4 ${darkMode ? "border-white/10 bg-[#0b1020]" : "border-slate-200 bg-slate-50"}`}>
+                                    <div key={request._id || idx} className={`rounded-2xl border p-4 ${darkMode ? "border-white/10 bg-[#0b1020]" : "border-slate-200 bg-slate-50"}`}>
                                         <div className="flex items-center justify-between gap-2">
-                                            <span className="text-sm font-semibold">Request #{request.id}</span>
+                                            <span className="text-sm font-semibold">Request #{reqId}</span>
                                             <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${
-                                                request.status === 0
+                                                requestStatus === "PENDING"
                                                     ? "bg-amber-500/10 text-amber-400"
-                                                    : request.status === 1
+                                                    : requestStatus === "APPROVED" || requestStatus === "VERIFIED"
                                                     ? "bg-emerald-500/10 text-emerald-400"
-                                                    : request.status === 2
+                                                    : requestStatus === "REJECTED"
                                                     ? "bg-rose-500/10 text-rose-400"
                                                     : "bg-slate-500/10 text-slate-400"
                                             }`}>
@@ -201,10 +219,13 @@ const MyProjects = () => {
                                             </span>
                                         </div>
                                         <p className="mt-2 text-sm text-slate-400">
-                                            Project ID: <span className="font-mono text-[11px] text-slate-200">{formatProjectId(request.credentialHash)}</span>
+                                            Project: <span className="font-semibold text-slate-200">{request.project?.projectName || formatProjectId(request.credentialHash)}</span>
                                         </p>
-                                        <p className="mt-1 text-sm text-slate-400">Verifier: {request.expectedVerifier}</p>
-                                        <p className="mt-1 text-sm text-slate-400">Created: {new Date(Number(request.createdAt) * 1000).toLocaleString()}</p>
+                                        <p className="mt-1 text-sm text-slate-400">Verifier: {verifierName}</p>
+                                        <p className="mt-1 text-sm text-slate-400">Submitted: {createdDate}</p>
+                                        {request.rejectionReason && (
+                                            <p className="mt-1 text-xs text-rose-400">Reason: {request.rejectionReason}</p>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -228,13 +249,13 @@ const MyProjects = () => {
                     >
                         <p className="text-lg font-semibold">No projects found</p>
                         <p className="mt-2 text-sm text-slate-400">
-                            Add a project to register it on-chain and start verification.
+                            Add a project to showcase in your portfolio.
                         </p>
                         <Link
                             to="/student/project/add"
-                            className="mt-5 inline-block rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-blue-500"
+                            className="mt-5 inline-block rounded-xl bg-violet-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-violet-500 shadow-md"
                         >
-                            Register a Project
+                            + Add Project
                         </Link>
                     </div>
                 ) : (
@@ -248,33 +269,50 @@ const MyProjects = () => {
                             >
                                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                                     <div className="space-y-3">
-                                        <div>
-                                            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Project</p>
-                                            <h2 className="mt-2 text-2xl font-bold">{project.projectName}</h2>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Project</span>
+                                            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                                                project.isVerified
+                                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                                    : project.status === "REJECTED"
+                                                    ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                                    : project.status === "PENDING" && project.verificationHistory?.length > 0
+                                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                                    : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                            }`}>
+                                                {project.isVerified
+                                                    ? "Verified"
+                                                    : project.status === "REJECTED"
+                                                    ? "Rejected"
+                                                    : project.status === "PENDING" && project.verificationHistory?.length > 0
+                                                    ? "Pending Verification"
+                                                    : "Project"}
+                                            </span>
                                         </div>
+                                        <h2 className="mt-1 text-2xl font-bold">{project.projectName}</h2>
 
                                         <div className="grid gap-3 sm:grid-cols-2 text-sm text-slate-400">
                                             <p><span className="font-semibold text-slate-500">Type:</span> {project.projectType}</p>
                                             <p><span className="font-semibold text-slate-500">Project ID:</span> <span className="font-mono text-[11px] text-slate-200">{formatProjectId(project.projectHash || project.githubHash)}</span></p>
                                             <p className="sm:col-span-2"><span className="font-semibold text-slate-500">GitHub:</span> <a href={project.githubLink} target="_blank" rel="noreferrer" className="text-violet-400 underline">{project.githubLink}</a></p>
-                                            <p className="sm:col-span-2"><span className="font-semibold text-slate-500">Description:</span> {project.description || "No description provided."}</p>
-                                            <p><span className="font-semibold text-slate-500">On-Chain:</span> {project.onChainRegistered ? "✓ Registered" : "Not registered"}</p>
+                                            {project.description && (
+                                                <p className="sm:col-span-2"><span className="font-semibold text-slate-500">Description:</span> {project.description}</p>
+                                            )}
+                                            <p><span className="font-semibold text-slate-500">Verification:</span> {project.isVerified ? "✓ Verified" : "Showcase Project"}</p>
+                                            {project.txHash && (
+                                                <p className="sm:col-span-2 font-mono text-[11px] text-slate-400 break-all"><span className="font-semibold text-slate-500">Tx:</span> {project.txHash}</p>
+                                            )}
+                                            {project.rejectionReason && (
+                                                <p className="sm:col-span-2 text-rose-400"><span className="font-semibold">Rejection Reason:</span> {project.rejectionReason}</p>
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="flex flex-col items-end gap-2">
-                                        {project.onChainRegistered && (
+                                        {!project.isVerified && project.status !== "REJECTED" && (
                                             <Link
-                                                to={`/student/project/verify?projectId=${encodeURIComponent(project.projectHash || project.githubHash || project._id)}`}
-                                                className="inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-500"
-                                            >
-                                                + Request Verification
-                                            </Link>
-                                        )}
-                                        {!project.onChainRegistered && (
-                                            <Link
-                                                to="/student/project/verify"
-                                                className="inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-500"
+                                                to={`/student/project/verify?type=project&projectId=${encodeURIComponent(project._id)}`}
+                                                className="inline-flex rounded-xl bg-violet-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-violet-500 shadow-md shadow-violet-600/30"
                                             >
                                                 Request Verification
                                             </Link>
@@ -282,8 +320,8 @@ const MyProjects = () => {
                                     </div>
                                 </div>
 
-                                <div className="mt-6">
-                                    <h3 className="mb-4 text-lg font-semibold">Verification History</h3>
+                                <div className="mt-6 border-t border-white/5 pt-4">
+                                    <h3 className="mb-3 text-base font-semibold">Verification History</h3>
                                     {(project.verificationHistory || []).length === 0 ? (
                                         <div className={`rounded-2xl border p-4 ${darkMode ? "border-white/10 bg-[#0b1020]" : "border-slate-200 bg-slate-50"}`}>
                                             <p className="text-sm text-slate-400">No verification records yet. Requests can be sent to approved organisations.</p>
@@ -298,7 +336,7 @@ const MyProjects = () => {
                                                             <p className="text-xs text-slate-400">Organization: {entry.verifier || entry.expectedVerifier || "—"}</p>
                                                         </div>
                                                         <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${
-                                                            entry.label === "VERIFIED"
+                                                            entry.label === "VERIFIED" || entry.label === "APPROVED"
                                                                 ? "bg-emerald-500/10 text-emerald-400"
                                                                 : entry.label === "PENDING"
                                                                 ? "bg-amber-500/10 text-amber-400"
@@ -310,17 +348,14 @@ const MyProjects = () => {
                                                         </span>
                                                     </div>
 
-                                                    {entry.verifier && (
-                                                        <p className="mt-2 text-xs text-slate-400">Verifier: {entry.verifier}</p>
-                                                    )}
-                                                    {entry.expectedVerifier && (
-                                                        <p className="mt-1 text-xs text-slate-400">Expected Verifier: {entry.expectedVerifier}</p>
-                                                    )}
                                                     {entry.requestId && (
                                                         <p className="mt-1 text-xs text-slate-400">Request ID: {entry.requestId}</p>
                                                     )}
                                                     {(entry.verifiedAt || entry.createdAt) && (
                                                         <p className="mt-1 text-xs text-slate-400">Date: {new Date(Number(entry.verifiedAt || entry.createdAt) * 1000).toLocaleString()}</p>
+                                                    )}
+                                                    {entry.reason && (
+                                                        <p className="mt-1 text-xs text-rose-400">Reason: {entry.reason}</p>
                                                     )}
                                                 </div>
                                             ))}

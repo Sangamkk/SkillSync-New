@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
+<<<<<<< Updated upstream
 import { registerOrganisation } from "../services/organisationBlockchain";
+=======
+import { useNavigate } from "react-router-dom";
+>>>>>>> Stashed changes
 import {
     getPendingApplications,
     approveOrganisation,
@@ -9,7 +13,7 @@ import { OrganizationType } from "../utils/enums";
 import MeshBackground from "../components/common/MeshBackground";
 
 const AdminDashboard = () => {
-
+    const navigate = useNavigate();
     const [applications, setApplications] = useState([]);
     const [loadingId, setLoadingId] = useState(null);
     const [statusMessage, setStatusMessage] = useState({ id: null, text: "", type: "" });
@@ -121,6 +125,35 @@ const AdminDashboard = () => {
 
             <div className="relative z-10 mx-auto max-w-6xl">
 
+                {/* Top Action Bar */}
+                <div className="flex items-center justify-between gap-3 mb-6">
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition cursor-pointer ${
+                            darkMode
+                                ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-sm"
+                        }`}
+                    >
+                        ← Back
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            localStorage.removeItem("skillsync-token");
+                            localStorage.removeItem("skillsync-role");
+                            navigate("/login");
+                        }}
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-xl border transition cursor-pointer ${
+                            darkMode
+                                ? "border-red-500/20 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                                : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 shadow-sm"
+                        }`}
+                    >
+                        🚪 Logout
+                    </button>
+                </div>
 
                 {/* ================= HEADER ================= */}
 

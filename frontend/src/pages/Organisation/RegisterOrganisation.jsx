@@ -1,8 +1,14 @@
 import { useState } from "react";
+<<<<<<< Updated upstream
 import { applyOrganisation } from "../../services/backendAuthentication/registerService";
+=======
+import { Link, useNavigate } from "react-router-dom";
+import { applyOrganisation } from "../../services/organisationService";
+>>>>>>> Stashed changes
 import MeshBackground from "../../components/common/MeshBackground";
 
 const RegisterOrganisation = () => {
+    const navigate = useNavigate();
     const [darkMode] = useState(() => {
         return localStorage.getItem("skillsync-theme") !== "light";
     });
@@ -200,7 +206,31 @@ const RegisterOrganisation = () => {
 
             {/* ================= MAIN CONTENT ================= */}
 
-            <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
+            <div className="relative z-10 mx-auto max-w-6xl">
+                {/* Top Action Bar */}
+                <div className="flex items-center justify-between gap-3 mb-6">
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition cursor-pointer ${
+                            darkMode
+                                ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-sm"
+                        }`}
+                    >
+                        ← Back
+                    </button>
+                    <Link
+                        to="/login"
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-xl border transition ${
+                            darkMode
+                                ? "border-violet-500/20 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
+                                : "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 shadow-sm"
+                        }`}
+                    >
+                        Already registered? Log in →
+                    </Link>
+                </div>
 
                 <div className="grid w-full items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
 

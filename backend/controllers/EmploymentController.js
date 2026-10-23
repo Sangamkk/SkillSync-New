@@ -99,7 +99,7 @@ export const createJob = async (req, res) => {
 
 export const getAllJobs = async (req, res) => {
   try {
-    const jobs = await Job.find({ isActive: true }).lean();
+    const jobs = await Job.find({ isActive: true }).sort({ createdAt: -1 }).lean();
 
     const jobsWithOrg = await Promise.all(jobs.map(async (job) => {
       const organisation = await resolveOrganisationDisplay(job.organisation);
@@ -134,6 +134,7 @@ export const getJobById = async (req, res) => {
   }
 };
 
+<<<<<<< Updated upstream
 export const getMyJobs = async (req, res) => {
   try {
     const jobs = await Job.find({
@@ -141,6 +142,56 @@ export const getMyJobs = async (req, res) => {
     });
 
     res.status(200).json(jobs);
+=======
+// ─── PUT /api/employment/jobs/:jobId ─────────────────────────────────────────
+export const updateJob = async (req, res) => {
+  try {
+    const orgId = req.user?.userId || req.user?._id;
+    const { jobId } = req.params;
+    const { title, description, requiredSkills, employmentType, location, stipend, isActive } = req.body;
+
+    const job = await Job.findOne({ _id: jobId, organisation: orgId });
+    if (!job) {
+      return res.status(404).json({ message: "Job not found or unauthorized to edit this job." });
+    }
+
+    if (title !== undefined) job.title = title.trim();
+    if (description !== undefined) job.description = description.trim();
+    if (employmentType !== undefined) job.employmentType = employmentType;
+    if (location !== undefined) job.location = location.trim();
+    if (stipend !== undefined) job.stipend = stipend !== "" && stipend !== null ? Number(stipend) : null;
+    if (isActive !== undefined) job.isActive = Boolean(isActive);
+
+    if (requiredSkills !== undefined) {
+      job.requiredSkills = Array.isArray(requiredSkills)
+        ? requiredSkills
+        : typeof requiredSkills === "string"
+        ? requiredSkills.split(",").map((s) => s.trim()).filter(Boolean)
+        : job.requiredSkills;
+    }
+
+    await job.save();
+    const organisation = await resolveOrganisationDisplay(job.organisation);
+    return res.status(200).json({ ...job.toObject(), organisation });
+  } catch (error) {
+    console.error("Update job error:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── GET /api/employment/jobs/my ─────────────────────────────────────────────
+export const getMyJobs = async (req, res) => {
+  try {
+    const orgId = req.user?.userId || req.user?._id;
+    const jobs = await Job.find({ organisation: orgId }).sort({ createdAt: -1 }).lean();
+    const jobsWithCounts = await Promise.all(
+      jobs.map(async (job) => {
+        const applicantCount = await Application.countDocuments({ job: job._id });
+        return { ...job, applicantCount };
+      })
+    );
+    return res.status(200).json(jobsWithCounts);
+>>>>>>> Stashed changes
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -259,8 +310,14 @@ export const getApplicants = async (req, res) => {
       job: jobId,
       organisation: req.user.userId,
     })
+<<<<<<< Updated upstream
       .populate("student", "name email walletAddress usn college")
       .populate("job");
+=======
+      .populate("student", "-password")
+      .populate("job")
+      .sort({ createdAt: -1 });
+>>>>>>> Stashed changes
 
     return res.status(200).json(applicants);
   } catch (error) {
@@ -290,9 +347,14 @@ export const getApplicantDetail = async (req, res) => {
       job: jobId,
       organisation: req.user.userId,
     })
+<<<<<<< Updated upstream
       .populate("student", "name email walletAddress usn college")
       .populate("job", "title description employmentType location stipend requiredSkills organisation")
       .populate("organisation", "name email organisationName companyName walletAddress");
+=======
+      .populate("student", "-password")
+      .populate("job");
+>>>>>>> Stashed changes
 
     if (!application) {
       return res.status(404).json({
@@ -496,6 +558,7 @@ export const getStudentEmploymentMetadata = async (req, res) => {
   }
 };
 
+<<<<<<< Updated upstream
 export const getOrganisationEmployees =
   async (req, res) => {
     try {
@@ -512,6 +575,16 @@ export const getOrganisationEmployees =
             "job",
             "title employmentType"
           );
+=======
+// ─── GET /api/employment/employees ───────────────────────────────────────────
+export const getOrganisationEmployees = async (req, res) => {
+  try {
+    const orgId = req.user?.userId || req.user?._id;
+    const employees = await Employment.find({ organisation: orgId })
+      .populate("student", "-password")
+      .populate("job", "title description employmentType location")
+      .sort({ createdAt: -1 });
+>>>>>>> Stashed changes
 
       res.status(200).json(employees);
     } catch (error) {

@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createJob,
+  updateJob,
   getMyJobs,
   deleteJob,
   getAllJobs,
@@ -34,8 +35,18 @@ router.post(
     createJob
 );
 
+<<<<<<< Updated upstream
 
 // Get jobs created by the logged-in organisation
+=======
+router.put(
+    "/jobs/:jobId",
+    authenticate,
+    authorizeRoles("ORGANISATION"),
+    updateJob
+);
+
+>>>>>>> Stashed changes
 router.get(
     "/jobs/my",
     authenticate,
@@ -54,6 +65,10 @@ router.delete(
     deleteJob
 );
 
+<<<<<<< Updated upstream
+=======
+// ─── Shared & Student: Jobs ───────────────────────────────────────────────────
+>>>>>>> Stashed changes
 
 // =====================================================
 // Student Routes
@@ -70,7 +85,7 @@ router.get(
 router.get(
     "/jobs/:jobId",
     authenticate,
-    authorizeRoles("STUDENT"),
+    authorizeRoles("STUDENT", "ORGANISATION"),
     getJobById
 );
 
