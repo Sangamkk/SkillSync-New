@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createProject } from "../../services/projectService";
 import MeshBackground from "../../components/common/MeshBackground";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 
 const AddProject = () => {
+    const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
         projectName: "",
@@ -42,15 +43,9 @@ const AddProject = () => {
             setStatusMessage({ type: "info", text: "Saving project…" });
             const response = await createProject(data);
 
-            // Backend automatically hashes and registers the project on-chain.
-            // No MetaMask required.
-            const txHash = response?.project?.transactionHash || response?.transactionHash || "";
-
             setStatusMessage({
                 type: "success",
-                text: txHash
-                    ? `✓ Project submitted! Tx: ${txHash.slice(0, 16)}…`
-                    : "✓ Project submitted successfully."
+                text: "✓ Project added successfully to your portfolio!"
             });
 
             setFormData({
@@ -88,25 +83,49 @@ const AddProject = () => {
                             : "border-slate-200 bg-white/90 shadow-xl"
                     }`}
                 >
-                    <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                        <div>
-                            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-400">
-                                Step 1 of 2
-                            </span>
-                            <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
-                                Add Project
-                            </h1>
-                            <p className="mt-2 text-sm text-slate-400">
-                                Register your project repository directly on the ApplicantManager smart contract.
-                            </p>
-                        </div>
-
-                        <Link
-                            to="/student/project/verify"
-                            className="rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-2.5 text-xs font-semibold text-violet-300 transition hover:bg-violet-500/20"
+                    <div className="mb-6 flex items-center justify-between">
+                        <button
+                            type="button"
+                            onClick={() => navigate(-1)}
+                            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition cursor-pointer ${
+                                darkMode
+                                    ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-sm"
+                            }`}
                         >
-                            Request Verification →
-                        </Link>
+                            ← Back
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                            <Link
+                                to="/student/dashboard"
+                                className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition ${
+                                    darkMode
+                                        ? "border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
+                                        : "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 shadow-sm"
+                                }`}
+                            >
+                                <span>👤</span> Profile Dashboard
+                            </Link>
+                            <Link
+                                to="/student/project/verify"
+                                className="rounded-xl border border-violet-500/30 bg-violet-500/10 px-3.5 py-1.5 text-xs font-semibold text-violet-300 transition hover:bg-violet-500/20"
+                            >
+                                Request Verification →
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div className="mb-8">
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-400">
+                            Project Portfolio
+                        </span>
+                        <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
+                            Add Project
+                        </h1>
+                        <p className="mt-2 text-sm text-slate-400">
+                            Add a project to showcase in your student profile. You can keep it as a project or request organisation verification whenever you want.
+                        </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -208,7 +227,7 @@ const AddProject = () => {
                                 loading ? "cursor-not-allowed opacity-60" : ""
                             }`}
                         >
-                            {loading ? "Registering On-Chain..." : "Add Project"}
+                            {loading ? "Saving Project..." : "Add Project"}
                         </button>
                     </form>
                 </div>

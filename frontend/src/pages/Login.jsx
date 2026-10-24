@@ -2,30 +2,23 @@ import { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { login as loginApi } from "../services/authService";
-import MeshBackground from "../components/common/MeshBackground";
 
 const ROLES = ["STUDENT", "ORGANISATION"];
 
 const roleConfig = {
   STUDENT: {
     label: "Student",
-    icon: "🎓",
-    color: "from-violet-500 to-purple-600",
     desc: "Access your portfolio, certificates & job opportunities",
     redirectTo: "/student/dashboard",
   },
   ORGANISATION: {
     label: "Organisation",
-    icon: "🏢",
-    color: "from-blue-500 to-cyan-500",
     desc: "Manage verifications, issue certificates & recruit talent",
     redirectTo: "/organisation",
   },
   ADMIN: {
     label: "Admin",
-    icon: "🛡️",
-    color: "from-orange-500 to-red-500",
-    desc: "System administration",
+    desc: "System administration & governance",
     redirectTo: "/admin",
   },
 };
@@ -41,7 +34,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [darkMode] = useState(() => localStorage.getItem("skillsync-theme") !== "light");
 
   const cfg = roleConfig[selectedRole];
   const from = location.state?.from?.pathname || cfg.redirectTo;
@@ -72,72 +64,68 @@ const Login = () => {
     }
   };
 
-  const base = darkMode
-    ? "bg-gray-950 text-white"
-    : "bg-slate-50 text-gray-900";
-
   return (
-    <div className={`relative min-h-screen flex items-center justify-center px-4 ${base}`}>
-      <MeshBackground darkMode={darkMode} />
-
-      <div className="relative z-10 w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-              S
-            </div>
-            <span className={`text-2xl font-bold tracking-tight ${darkMode ? "text-white" : "text-gray-900"}`}>
-              SkillSync
-            </span>
-          </div>
-          <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-            Blockchain-verified credentials platform
-          </p>
+    <div className="min-h-screen bg-[#F3F6F8] text-[#191919] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        {/* Back navigation */}
+        <div className="mb-4">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[#0A66C2] hover:underline"
+          >
+            ← Back to SkillSync Home
+          </Link>
         </div>
 
-        {/* Card */}
-        <div className={`rounded-2xl border backdrop-blur-xl p-8 shadow-2xl ${
-          darkMode
-            ? "border-white/10 bg-white/[0.04]"
-            : "border-slate-200 bg-white/90"
-        }`}>
-          <h1 className={`text-xl font-semibold mb-1 ${darkMode ? "text-white" : "text-gray-900"}`}>
-            Welcome back
-          </h1>
-          <p className={`text-sm mb-6 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-            Sign in to your SkillSync account
+        {/* Logo and title */}
+        <div className="text-center">
+          <div className="inline-flex items-center gap-1.5 justify-center">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#0A66C2] text-white font-bold text-base shadow-xs">
+              S
+            </span>
+            <span className="text-2xl font-bold tracking-tight text-[#191919]">
+              Skill<span className="text-[#0A66C2]">Sync</span>
+            </span>
+          </div>
+          <h2 className="mt-3 text-xl font-bold tracking-tight text-[#191919]">
+            Sign in to your account
+          </h2>
+          <p className="mt-1 text-xs text-[#666666]">
+            Secure blockchain credential verification platform
           </p>
+        </div>
+      </div>
 
-          {/* Role selector */}
-          <div className={`flex gap-2 mb-6 p-1 rounded-xl ${darkMode ? "bg-white/5" : "bg-slate-100"}`}>
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-6 sm:px-8 rounded-xl border border-[#D9E1E8] shadow-xs">
+          {/* Role selector tabs */}
+          <div className="flex rounded-md p-1 bg-[#F3F6F8] border border-[#D9E1E8] mb-5">
             {ROLES.map((r) => (
               <button
                 key={r}
                 type="button"
-                onClick={() => { setSelectedRole(r); setError(""); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                onClick={() => {
+                  setSelectedRole(r);
+                  setError("");
+                }}
+                className={`flex-1 py-1.5 px-3 rounded text-xs font-semibold transition cursor-pointer ${
                   selectedRole === r
-                    ? `bg-gradient-to-r ${roleConfig[r].color} text-white shadow-lg`
-                    : darkMode
-                      ? "text-gray-400 hover:text-white"
-                      : "text-gray-500 hover:text-gray-900"
+                    ? "bg-[#0A66C2] text-white shadow-xs"
+                    : "text-[#666666] hover:text-[#191919]"
                 }`}
               >
-                <span>{roleConfig[r].icon}</span>
                 {roleConfig[r].label}
               </button>
             ))}
           </div>
 
-          {/* Role description */}
-          <p className={`text-xs mb-5 px-1 ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
+          <p className="text-xs text-[#666666] mb-5">
             {cfg.desc}
           </p>
 
-          {/* Error */}
+          {/* Error Message */}
           {error && (
-            <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="mb-4 px-3.5 py-2.5 rounded-md bg-[#FCE8E6] border border-[#C5221F]/30 text-[#C5221F] text-xs font-medium">
               {error}
             </div>
           )}
@@ -145,7 +133,7 @@ const Login = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className={`block text-xs font-medium mb-1.5 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+              <label className="block text-xs font-semibold text-[#191919] mb-1">
                 Email address
               </label>
               <input
@@ -155,16 +143,12 @@ const Login = () => {
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
-                className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all focus:ring-2 focus:ring-violet-500/40 ${
-                  darkMode
-                    ? "bg-white/5 border-white/10 text-white placeholder-gray-600"
-                    : "bg-white border-slate-200 text-gray-900 placeholder-gray-400"
-                }`}
+                className="w-full px-3.5 py-2 text-sm rounded-md border border-[#D9E1E8] bg-white text-[#191919] placeholder-[#999999] focus:outline-none focus:border-[#0A66C2] focus:ring-1 focus:ring-[#0A66C2]"
               />
             </div>
 
             <div>
-              <label className={`block text-xs font-medium mb-1.5 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+              <label className="block text-xs font-semibold text-[#191919] mb-1">
                 Password
               </label>
               <div className="relative">
@@ -175,18 +159,12 @@ const Login = () => {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className={`w-full px-4 py-2.5 pr-11 rounded-xl border text-sm outline-none transition-all focus:ring-2 focus:ring-violet-500/40 ${
-                    darkMode
-                      ? "bg-white/5 border-white/10 text-white placeholder-gray-600"
-                      : "bg-white border-slate-200 text-gray-900 placeholder-gray-400"
-                  }`}
+                  className="w-full px-3.5 py-2 pr-12 text-sm rounded-md border border-[#D9E1E8] bg-white text-[#191919] placeholder-[#999999] focus:outline-none focus:border-[#0A66C2] focus:ring-1 focus:ring-[#0A66C2]"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${
-                    darkMode ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-600"
-                  }`}
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#0A66C2] hover:underline"
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
@@ -196,50 +174,47 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-2.5 px-4 rounded-xl font-medium text-sm text-white transition-all bg-gradient-to-r ${cfg.color} hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg`}
+              className="w-full py-2.5 px-4 rounded-md font-semibold text-sm bg-[#0A66C2] text-white hover:bg-[#004182] disabled:opacity-50 disabled:pointer-events-none transition cursor-pointer shadow-xs flex items-center justify-center gap-2"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
+                <>
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in…
-                </span>
+                  <span>Signing in…</span>
+                </>
               ) : (
-                `Sign in as ${cfg.label}`
+                `Sign In as ${cfg.label}`
               )}
             </button>
           </form>
 
-          {/* Footer links */}
-          <div className="mt-6 flex flex-col gap-2 text-center">
-            <p className={`text-xs ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
-              Don't have a student account?{" "}
-              <Link to="/register" className="text-violet-400 hover:text-violet-300 font-medium">
-                Register here
+          {/* Registration Links */}
+          <div className="mt-6 pt-5 border-t border-[#D9E1E8] space-y-2 text-center text-xs text-[#666666]">
+            <p>
+              New student?{" "}
+              <Link to="/register" className="text-[#0A66C2] font-semibold hover:underline">
+                Create a student profile
               </Link>
             </p>
-            <p className={`text-xs ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
-              Representing an organisation?{" "}
-              <Link to="/org/register" className="text-blue-400 hover:text-blue-300 font-medium">
-                Apply to join
+            <p>
+              New organisation?{" "}
+              <Link to="/org/register" className="text-[#0A66C2] font-semibold hover:underline">
+                Register your institution
               </Link>
             </p>
           </div>
         </div>
 
-        {/* Admin login note */}
-        <p className="text-center text-xs text-gray-600 mt-4">
-          Admin?{" "}
+        {/* Admin Switcher */}
+        <div className="text-center mt-4 text-xs text-[#666666]">
+          Administrator?{" "}
           <button
             type="button"
             onClick={() => setSelectedRole("ADMIN")}
-            className="text-orange-400 hover:text-orange-300 underline underline-offset-2"
+            className="text-[#0A66C2] font-semibold hover:underline cursor-pointer"
           >
-            Switch to admin mode
+            Switch to Admin sign-in
           </button>
-          {selectedRole === "ADMIN" && (
-            <span className="ml-2 text-orange-400">↑ Use the form above</span>
-          )}
-        </p>
+        </div>
       </div>
     </div>
   );

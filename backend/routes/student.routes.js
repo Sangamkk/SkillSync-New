@@ -1,6 +1,6 @@
 import express from "express";
 
-import { getProfile, getFullProfile } from "../controllers/student.controller.js";
+import { getProfile, getFullProfile, updateProfile } from "../controllers/student.controller.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
 import {
@@ -19,6 +19,13 @@ router.get(
     authenticate,
     authorizeRoles("STUDENT"),
     getProfile
+);
+
+router.put(
+    "/profile",
+    authenticate,
+    authorizeRoles("STUDENT"),
+    updateProfile
 );
 
 // Full professional profile (certs + projects + employment)

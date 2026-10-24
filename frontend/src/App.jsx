@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 // Student Pages
 import StudentDashboard from "./pages/student/Dashboard";
+import StudentProfile from "./pages/student/StudentProfile";
 import Certificate from "./pages/student/Certificate";
 import Jobs from "./pages/student/Jobs";
 import JobDetail from "./pages/student/JobDetail";
@@ -28,6 +29,7 @@ import OrganisationDashboard from "./pages/Organisation/organizationDashboard";
 import RegisterOrganisation from "./pages/Organisation/RegisterOrganisation";
 import CreateJob from "./pages/Organisation/CreateJob";
 import MyJobs from "./pages/Organisation/MyJobs";
+import OrganisationJobDetail from "./pages/Organisation/OrganisationJobDetail";
 import Applicants from "./pages/Organisation/Applicants";
 import ApplicantDetail from "./pages/Organisation/ApplicantDetail";
 import CandidateProfilePage from "./pages/Organisation/CandidateProfilePage";
@@ -54,9 +56,15 @@ function App() {
         <Route path="/verify-document" element={<VerifyDocument />} />
 
         {/* ─── Student Routes ────────────────────────────────────────── */}
+        <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
         <Route path="/student/dashboard" element={
           <ProtectedRoute requiredRole="STUDENT">
             <StudentDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/student/profile" element={
+          <ProtectedRoute requiredRole="STUDENT">
+            <StudentProfile />
           </ProtectedRoute>
         } />
         <Route path="/student/certificates" element={
@@ -106,6 +114,8 @@ function App() {
             <ProjectHistory />
           </ProtectedRoute>
         } />
+        <Route path="/student/projects/history" element={<Navigate to="/student/project-history" replace />} />
+        <Route path="/student/project/history" element={<Navigate to="/student/project-history" replace />} />
 
         {/* ─── Organisation Routes ───────────────────────────────────── */}
         <Route path="/organisation" element={
@@ -128,6 +138,11 @@ function App() {
             <MyJobs />
           </ProtectedRoute>
         } />
+        <Route path="/organisation/jobs/:jobId" element={
+          <ProtectedRoute requiredRole="ORGANISATION">
+            <OrganisationJobDetail />
+          </ProtectedRoute>
+        } />
         <Route path="/organisation/jobs/:jobId/applications" element={
           <ProtectedRoute requiredRole="ORGANISATION">
             <Applicants />
@@ -138,9 +153,10 @@ function App() {
             <ApplicantDetail />
           </ProtectedRoute>
         } />
+        {/* Merged redundant route: Candidate Profile is now part of ApplicantDetail resume view */}
         <Route path="/organisation/jobs/:jobId/applications/:applicationId/profile" element={
           <ProtectedRoute requiredRole="ORGANISATION">
-            <CandidateProfilePage />
+            <ApplicantDetail />
           </ProtectedRoute>
         } />
         <Route path="/organisation/employees" element={
@@ -149,6 +165,16 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/organisation/project" element={
+          <ProtectedRoute requiredRole="ORGANISATION">
+            <PendingProjects />
+          </ProtectedRoute>
+        } />
+        <Route path="/organisation/projects" element={
+          <ProtectedRoute requiredRole="ORGANISATION">
+            <PendingProjects />
+          </ProtectedRoute>
+        } />
+        <Route path="/organisation/pending-projects" element={
           <ProtectedRoute requiredRole="ORGANISATION">
             <PendingProjects />
           </ProtectedRoute>

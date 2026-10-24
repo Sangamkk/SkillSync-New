@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
 import { getStudentProjects } from "../../../services/projectService";
-
+import { getMyRequests } from "../../../services/verificationService";
 import MeshBackground from "../../../components/common/MeshBackground";
 
 
@@ -61,11 +61,16 @@ const formatWallet = (value) => {
 
 const formatDate = (value) => {
     if (!value) { return "—"; }
-    const timestamp = Number(value);
-    if (!Number.isFinite(timestamp)) { return "—"; }
-    // Blockchain timestamps are normally Unix seconds.
-    const milliseconds = timestamp < 100000000000 ? timestamp * 1000 : timestamp;
-    return new Date(milliseconds).toLocaleString();
+    if (typeof value === "number" || (!isNaN(Number(value)) && !isNaN(parseFloat(value)) && String(value).trim() !== "" && !String(value).includes("-") && !String(value).includes("T"))) {
+        const timestamp = Number(value);
+        const milliseconds = timestamp < 100000000000 ? timestamp * 1000 : timestamp;
+        return new Date(milliseconds).toLocaleString();
+    }
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+        return date.toLocaleString();
+    }
+    return "—";
 };
 
 /* =========================================================
@@ -75,12 +80,16 @@ const formatDate = (value) => {
 const getProjectCategory = (project) => {
     // Rejected gets highest priority.
     if (String(project.status || "").toUpperCase() === "REJECTED") { return "REJECTED"; }
-    //Project exists in MongoDB but has not been registered on blockchain.
-    if (!project.onChainRegistered) { return "NOT_REGISTERED"; }
-    // Registered on blockchain and verified.
-    if (project.isVerified) { return "VERIFIED"; }
-    //Registered on blockchain but not verified.
-    return "REGISTERED";
+    // Verified
+    if (project.isVerified || String(project.status || "").toUpperCase() === "APPROVED") {
+        return "VERIFIED";
+    }
+    // Pending verification
+    if (String(project.status || "").toUpperCase() === "PENDING" && (project.verificationHistory?.length > 0 || project.requests?.length > 0)) {
+        return "PENDING";
+    }
+    // Regular showcase project
+    return "PROJECT";
 };
 
 /* =========================================================
@@ -92,21 +101,21 @@ const statusConfig = {
         label: "All",
         icon: "📂"
     },
-    REGISTERED: {
-        label: "Registered",
-        icon: "📝"
-    },
     VERIFIED: {
         label: "Verified",
         icon: "✓"
     },
+    PENDING: {
+        label: "Pending",
+        icon: "⏳"
+    },
+    PROJECT: {
+        label: "Projects",
+        icon: "💻"
+    },
     REJECTED: {
         label: "Rejected",
         icon: "✕"
-    },
-    NOT_REGISTERED: {
-        label: "Not Registered",
-        icon: "○"
     }
 };
 
@@ -116,14 +125,17 @@ const statusConfig = {
 
 const ProjectCard = ({ project, darkMode }) => {
 
-    const category = getProjectCategory(project);
+    const category = getProjectCategory(project) || "PROJECT";
 
     const statusStyles = {
-        REGISTERED: "bg-blue-500/10 text-blue-400 border-blue-500/20",
         VERIFIED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-        REJECTED: "bg-red-500/10 text-red-400 border-red-500/20",
-        NOT_REGISTERED: "bg-amber-500/10 text-amber-400 border-amber-500/20"
+        PENDING: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        PROJECT: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+        REJECTED: "bg-red-500/10 text-red-400 border-red-500/20"
     };
+
+    const currentConfig = statusConfig[category] || statusConfig.PROJECT;
+
     return (
         <div
             className={`rounded-3xl border p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 ${darkMode
@@ -149,14 +161,14 @@ const ProjectCard = ({ project, darkMode }) => {
                     </p>
                 </div>
                 <span
-                    className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${statusStyles[category]
+                    className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${statusStyles[category] || statusStyles.NOT_REGISTERED
                         }`}
                 >
                     <span>
-                        {statusConfig[category].icon}
+                        {currentConfig.icon}
                     </span>
 
-                    {statusConfig[category].label}
+                    {currentConfig.label}
                 </span>
             </div>
             {/* =========================================
@@ -172,6 +184,11 @@ const ProjectCard = ({ project, darkMode }) => {
                     >
                         {project.description}
                     </p>
+                </div>
+            )}
+            {project.rejectionReason && (
+                <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
+                    <span className="font-semibold">Rejection Reason:</span> {project.rejectionReason}
                 </div>
             )}
             {/* =========================================
@@ -222,7 +239,7 @@ const ProjectCard = ({ project, darkMode }) => {
                 </div>
             </div>
             {/* =========================================
-                BLOCKCHAIN INFORMATION
+                STATUS & VERIFICATION INFORMATION
             ========================================= */}
             <div
                 className={`mt-3 grid gap-3 sm:grid-cols-2`}
@@ -234,17 +251,26 @@ const ProjectCard = ({ project, darkMode }) => {
                         }`}
                 >
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                        Blockchain Registration
+                        Status
                     </p>
                     <p
-                        className={`mt-2 text-sm font-semibold ${project.onChainRegistered
+                        className={`mt-2 text-sm font-semibold ${
+                            project.isVerified
                                 ? "text-emerald-500"
-                                : "text-amber-500"
-                            }`}
+                                : project.status === "REJECTED"
+                                ? "text-red-500"
+                                : project.status === "PENDING" && (project.verificationHistory?.length > 0 || project.requests?.length > 0)
+                                ? "text-amber-500"
+                                : "text-blue-400"
+                        }`}
                     >
-                        {project.onChainRegistered
-                            ? "Registered"
-                            : "Not Registered"}
+                        {project.isVerified
+                            ? "Verified"
+                            : project.status === "REJECTED"
+                            ? "Rejected"
+                            : project.status === "PENDING" && (project.verificationHistory?.length > 0 || project.requests?.length > 0)
+                            ? "Pending Verification"
+                            : "Showcase Project"}
                     </p>
                 </div>
                 <div
@@ -259,15 +285,23 @@ const ProjectCard = ({ project, darkMode }) => {
                     <p
                         className={`mt-2 text-sm font-semibold ${project.isVerified
                                 ? "text-emerald-500"
-                                : "text-slate-500"
+                                : "text-slate-400"
                             }`}
                     >
                         {project.isVerified
-                            ? "Verified"
-                            : "Not Verified"}
+                            ? "Verified by Organisation"
+                            : "Self-Reported / Showcase"}
                     </p>
                 </div>
             </div>
+            {project.txHash && (
+                <div className={`mt-3 rounded-2xl p-4 ${darkMode ? "bg-white/[0.035]" : "bg-slate-50"}`}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Transaction Hash</p>
+                    <p className={`mt-1 break-all font-mono text-xs ${darkMode ? "text-slate-300" : "text-slate-600"}`}>
+                        {project.txHash}
+                    </p>
+                </div>
+            )}
             {/* =========================================
                 VERIFICATION HISTORY
             ========================================= */}
@@ -278,54 +312,61 @@ const ProjectCard = ({ project, darkMode }) => {
                     </p>
                     <div className="space-y-2">
                         {project.verificationHistory.map(
-                            (entry, index) => (
-                                <div
-                                    key={`${project.hash}-${index}`}
-                                    className={`rounded-2xl border p-4 ${darkMode
-                                            ? "border-white/10 bg-black/10"
-                                            : "border-slate-200 bg-slate-50"
-                                        }`}
-                                >
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <span
-                                            className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${entry.status === "VERIFIED"
-                                                    ? "bg-emerald-500/10 text-emerald-500"
-                                                    : entry.status === "REVOKED"
-                                                        ? "bg-red-500/10 text-red-500"
-                                                        : "bg-slate-500/10 text-slate-500"
+                            (entry, index) => {
+                                const st = String(entry.status || "").toUpperCase();
+                                return (
+                                    <div
+                                        key={`${project.hash || project._id || index}-${index}`}
+                                        className={`rounded-2xl border p-4 ${darkMode
+                                                ? "border-white/10 bg-black/10"
+                                                : "border-slate-200 bg-slate-50"
+                                            }`}
+                                    >
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <span
+                                                className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                                                    st === "VERIFIED" || st === "APPROVED"
+                                                        ? "bg-emerald-500/10 text-emerald-500"
+                                                        : st === "REJECTED" || st === "REVOKED"
+                                                            ? "bg-red-500/10 text-red-500"
+                                                            : st === "PENDING"
+                                                                ? "bg-amber-500/10 text-amber-500"
+                                                                : "bg-slate-500/10 text-slate-500"
                                                 }`}
-                                        >
-                                            {entry.status || "UNKNOWN"}
-                                        </span>
-                                        <span className="text-xs text-slate-500">
-                                            {formatDate(
-                                                entry.verifiedAt ||
-                                                entry.createdAt
-                                            )}
-                                        </span>
-                                    </div>
-                                    {entry.verifierOrganisation && (
-                                        <p className="mt-3 text-xs text-slate-500">
-                                            Verified by:{" "}
-                                            <span className="font-semibold">
-                                                {entry.verifierOrganisation}
+                                            >
+                                                {entry.status || "UNKNOWN"}
                                             </span>
-                                        </p>
-                                    )}
-                                    {entry.verifier && (
-
-                                        <p className="mt-1 font-mono text-xs text-slate-500">
-                                            Wallet:{" "}
-                                            {formatWallet(
-                                                entry.verifier
-                                            )}
-                                        </p>
-
-                                    )}
-
-                                </div>
-
-                            )
+                                            <span className="text-xs text-slate-500">
+                                                {formatDate(
+                                                    entry.verifiedAt ||
+                                                    entry.createdAt
+                                                )}
+                                            </span>
+                                        </div>
+                                        {entry.verifierOrganisation && (
+                                            <p className="mt-3 text-xs text-slate-500">
+                                                Verifier:{" "}
+                                                <span className="font-semibold">
+                                                    {entry.verifierOrganisation}
+                                                </span>
+                                            </p>
+                                        )}
+                                        {entry.reason && (
+                                            <p className="mt-2 text-xs text-red-400">
+                                                <span className="font-semibold">Reason:</span> {entry.reason}
+                                            </p>
+                                        )}
+                                        {entry.verifier && entry.verifier !== entry.verifierOrganisation && (
+                                            <p className="mt-1 font-mono text-xs text-slate-500">
+                                                Identifier:{" "}
+                                                {formatWallet(
+                                                    entry.verifier
+                                                )}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            }
                         )}
 
                     </div>
@@ -362,6 +403,8 @@ const ProjectCard = ({ project, darkMode }) => {
 ========================================================= */
 
 const ProjectHistory = () => {
+    const navigate = useNavigate();
+    const { currentUser: user } = useAuth();
     const [projects, setProjects] = useState([]);
     const [selectedSection, setSelectedSection] = useState("ALL");
     const [loading, setLoading] = useState(true);
@@ -376,31 +419,79 @@ const ProjectHistory = () => {
        FETCH PROJECTS
     ===================================================== */
     useEffect(() => {
-
         fetchProjectHistory();
-
     }, []);
+
     const fetchProjectHistory = async () => {
         try {
             setLoading(true);
             setError("");
 
-            // Get all projects from REST API.
-            // Backend enriches each project with blockchain data
-            // (onChainRegistered, isVerified, verificationHistory, transactionHash).
-            const raw = await getStudentProjects();
-            const list = normalizeToArray(raw);
+            const [rawProjects, rawRequests] = await Promise.all([
+                getStudentProjects().catch((err) => {
+                    console.error("getStudentProjects error:", err);
+                    return [];
+                }),
+                getMyRequests().catch(() => [])
+            ]);
 
-            const enriched = list.map((project) => ({
-                ...project,
-                projectName: project.projectName || "Project",
-                projectType: project.projectType || "Project",
-                githubHash: project.githubHash || project.projectHash || "",
-                hash: project.githubHash || project.projectHash || "",
-                onChainRegistered: project.onChainRegistered ?? (project.status === "APPROVED"),
-                isVerified: project.isVerified ?? (project.status === "APPROVED"),
-                verificationHistory: project.verificationHistory || []
-            }));
+            const list = normalizeToArray(rawProjects);
+            const requests = Array.isArray(rawRequests) ? rawRequests : [];
+
+            const enriched = list.map((project) => {
+                const projId = project._id?.toString();
+                const projHash = (project.githubHash || project.projectHash || "").toLowerCase();
+
+                // Find matching verification requests from student's verification requests
+                const matchingRequests = requests.filter((r) => {
+                    const reqProjId = (r.project?._id || r.project)?.toString();
+                    const reqHash = (r.credentialHash || r.githubHash || "").toLowerCase();
+                    return (projId && reqProjId === projId) || (projHash && reqHash === projHash);
+                });
+
+                const formattedMatchingHistory = matchingRequests.map((req) => ({
+                    requestId: req.blockchainRequestId || req._id,
+                    status: (req.status || "Pending").toUpperCase(),
+                    verifierOrganisation: req.organisation?.organisationName || req.expectedVerifier || "Organisation",
+                    verifier: req.organisation?.walletAddress || req.organisation?.organisationName || req.expectedVerifier,
+                    createdAt: req.createdAt,
+                    verifiedAt: req.updatedAt,
+                    reason: req.rejectionReason || "",
+                }));
+
+                const combinedHistory = [
+                    ...(project.verificationHistory || []),
+                    ...formattedMatchingHistory.filter((mh) =>
+                        !(project.verificationHistory || []).some((vh) =>
+                            String(vh.requestId || "") === String(mh.requestId || "")
+                        )
+                    )
+                ];
+
+                const isVerified = Boolean(
+                    project.isVerified ||
+                    project.status === "APPROVED" ||
+                    combinedHistory.some(
+                        (h) => String(h.status || "").toUpperCase() === "APPROVED" || String(h.status || "").toUpperCase() === "VERIFIED"
+                    )
+                );
+                const onChainRegistered = Boolean(
+                    project.onChainRegistered ||
+                    project.txHash ||
+                    isVerified
+                );
+
+                return {
+                    ...project,
+                    projectName: project.projectName || "Project",
+                    projectType: project.projectType || "Project",
+                    githubHash: project.githubHash || project.projectHash || "",
+                    hash: project.githubHash || project.projectHash || "",
+                    onChainRegistered,
+                    isVerified,
+                    verificationHistory: combinedHistory
+                };
+            });
 
             setProjects(enriched);
         } catch (err) {
@@ -417,34 +508,24 @@ const ProjectHistory = () => {
     ===================================================== */
 
     const counts = useMemo(() => {
-
         const result = {
-
             ALL: projects.length,
-
-            REGISTERED: 0,
-
             VERIFIED: 0,
-
-            REJECTED: 0,
-
-            NOT_REGISTERED: 0
-
+            PENDING: 0,
+            PROJECT: 0,
+            REJECTED: 0
         };
 
-
         projects.forEach((project) => {
-
-            const category =
-                getProjectCategory(project);
-
-            result[category]++;
-
+            const category = getProjectCategory(project);
+            if (result[category] !== undefined) {
+                result[category]++;
+            } else {
+                result.PROJECT++;
+            }
         });
 
-
         return result;
-
     }, [projects]);
 
 
@@ -510,6 +591,31 @@ const ProjectHistory = () => {
 
             <div className="relative z-10 mx-auto max-w-6xl">
 
+                {/* Top Navigation Action Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition cursor-pointer ${
+                            darkMode
+                                ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-sm"
+                        }`}
+                    >
+                        ← Back
+                    </button>
+                    <Link
+                        to="/student/dashboard"
+                        className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition ${
+                            darkMode
+                                ? "border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
+                                : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 shadow-sm"
+                        }`}
+                    >
+                        <span>👤</span> Profile Dashboard
+                    </Link>
+                </div>
+
                 {/* =================================================
                     HEADER
                 ================================================= */}
@@ -539,19 +645,30 @@ const ProjectHistory = () => {
                             </h1>
 
                             <p className="mt-2 text-sm text-slate-500">
-                                Track the registration, verification,
-                                and rejection status of your projects.
+                                Track the verification and showcase status of your projects.
                             </p>
 
                         </div>
 
-
-                        <Link
-                            to="/student/dashboard"
-                            className="w-fit rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-700"
-                        >
-                            ← Dashboard
-                        </Link>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => navigate(-1)}
+                                className={`inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl border transition cursor-pointer ${
+                                    darkMode
+                                        ? "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shadow-sm"
+                                }`}
+                            >
+                                ← Back
+                            </button>
+                            <Link
+                                to="/student/dashboard"
+                                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-700 shadow-md shadow-blue-600/20"
+                            >
+                                <span>👤</span> Profile Dashboard
+                            </Link>
+                        </div>
 
                     </div>
 

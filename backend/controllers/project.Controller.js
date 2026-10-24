@@ -9,8 +9,9 @@ import Application from "../models/Application.js";
 // ─── POST /api/student/projects ───────────────────────────────────────────────
 export const createProject = async (req, res) => {
     try {
+        const userId = req.user?.userId || req.user?._id;
         const project = await createProjectService({
-            student: req.user.userId,
+            student: userId,
             projectName: req.body.projectName,
             projectType: req.body.projectType,
             githubLink: req.body.githubLink,
@@ -20,7 +21,9 @@ export const createProject = async (req, res) => {
         return res.status(201).json({
             success: true,
             message: "Project added successfully",
-            project
+            project,
+            txHash: project.txHash || "",
+            transactionHash: project.txHash || ""
         });
     } catch (error) {
         console.error("Create Project Error:", error);
@@ -53,7 +56,7 @@ export const getPendingProjects = async (req, res) => {
 // ─── GET /api/student/projects ────────────────────────────────────────────────
 export const getStudentProjects = async (req, res) => {
     try {
-        const studentId = req.params.studentId || req.query.studentId || req.user?.userId;
+        const studentId = req.params.studentId || req.query.studentId || req.user?.userId || req.user?._id;
         const projects = await getStudentProjectsService(studentId);
 
         return res.status(200).json({
@@ -82,10 +85,11 @@ export const updateProjectStatus = async (req, res) => {
             });
         }
 
+        const userId = req.user?.userId || req.user?._id;
         const project = await updateProjectStatusService(id, status, txHash, rejectionReason, {
             onChainRegistered,
             userRole: req.user?.role,
-            userId: req.user?.userId,
+            userId,
         });
 
         if (!project) {
@@ -98,7 +102,9 @@ export const updateProjectStatus = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: `Project status updated to ${status}`,
-            project
+            project,
+            txHash: project.txHash || "",
+            transactionHash: project.txHash || ""
         });
     } catch (error) {
         console.error("Update Project Status Error:", error);

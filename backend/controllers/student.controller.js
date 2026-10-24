@@ -37,3 +37,23 @@ export const getFullProfile = async (req, res) => {
         });
     }
 };
+
+// ─── PUT /api/student/profile ──────────────────────────────────────────────────
+/** Student updates their profile (bio, headline, skills, phone, college, etc.). */
+export const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user?.userId || req.user?._id;
+        const user = await StudentService.updateProfile(userId, req.body);
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user,
+        });
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || "Failed to update profile",
+        });
+    }
+};

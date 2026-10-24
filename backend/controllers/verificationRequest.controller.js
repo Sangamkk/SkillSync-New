@@ -283,6 +283,14 @@ export const createProjectVerificationRequest = async (req, res) => {
         const addProjTx = await applicantManager.addProject(student.applicantId, projectHashBytes32);
         await addProjTx.wait();
         console.log(`[BLOCKCHAIN] addProject confirmed: ${addProjTx.hash}`);
+        await Project.findByIdAndUpdate(projectId, {
+          onChainRegistered: true,
+          txHash: addProjTx.hash,
+        });
+      } else {
+        await Project.findByIdAndUpdate(projectId, {
+          onChainRegistered: true,
+        });
       }
     } catch (projErr) {
       console.warn("[WARNING] addProject on-chain check/register warning:", projErr.message);

@@ -5,52 +5,52 @@ import { verifyDocument, verifyCertificate } from "../../services/publicVerifica
 const OUTCOMES = {
   VALID: {
     badge: "✓ VERIFIED ON-CHAIN",
-    badgeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    badgeClass: "bg-[#E6F4EA] text-[#16805D] border border-[#16805D]/30",
     title: "Document Authenticity Confirmed",
     desc: "The cryptographic SHA-256 hash matches a verified certificate registered on the blockchain.",
-    glow: "shadow-emerald-500/10 border-emerald-500/30",
+    cardBorder: "border-[#16805D]/40",
   },
   DOCUMENT_VERIFIED: {
     badge: "✓ VERIFIED ON-CHAIN",
-    badgeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    badgeClass: "bg-[#E6F4EA] text-[#16805D] border border-[#16805D]/30",
     title: "Document Authenticity Confirmed",
     desc: "The cryptographic SHA-256 hash matches a verified certificate registered on the blockchain.",
-    glow: "shadow-emerald-500/10 border-emerald-500/30",
+    cardBorder: "border-[#16805D]/40",
   },
   NOT_FOUND: {
     badge: "? NOT REGISTERED",
-    badgeClass: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    badgeClass: "bg-[#FEF7E0] text-[#B06000] border border-[#B06000]/30",
     title: "Certificate Not Found in Registry",
     desc: "No matching record was found in the SkillSync database or blockchain ledger for this document.",
-    glow: "shadow-amber-500/10 border-amber-500/30",
+    cardBorder: "border-[#D9E1E8]",
   },
   REVOKED: {
     badge: "⊘ CERTIFICATE REVOKED",
-    badgeClass: "bg-red-500/15 text-red-400 border-red-500/30",
+    badgeClass: "bg-[#FCE8E6] text-[#C5221F] border border-[#C5221F]/30",
     title: "Certificate Has Been Revoked",
     desc: "A matching certificate exists, but it has been officially revoked by the issuing organisation.",
-    glow: "shadow-red-500/10 border-red-500/30",
+    cardBorder: "border-[#C5221F]/40",
   },
   EXPIRED: {
     badge: "⏰ CERTIFICATE EXPIRED",
-    badgeClass: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    badgeClass: "bg-[#FFF0E0] text-[#D9381E] border border-[#D9381E]/30",
     title: "Certificate Has Expired",
     desc: "This certificate was verified but has passed its expiration date.",
-    glow: "shadow-orange-500/10 border-orange-500/30",
+    cardBorder: "border-[#D9381E]/40",
   },
   PENDING: {
     badge: "⏳ VERIFICATION PENDING",
-    badgeClass: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    badgeClass: "bg-[#E8F3FF] text-[#0A66C2] border border-[#0A66C2]/30",
     title: "Certificate Verification Pending",
     desc: "This certificate has been submitted and is currently awaiting approval.",
-    glow: "shadow-blue-500/10 border-blue-500/30",
+    cardBorder: "border-[#0A66C2]/40",
   },
   INVALID: {
     badge: "✗ INVALID DOCUMENT",
-    badgeClass: "bg-red-500/15 text-red-400 border-red-500/30",
+    badgeClass: "bg-[#FCE8E6] text-[#C5221F] border border-[#C5221F]/30",
     title: "Document Verification Failed",
     desc: "The uploaded document does not match any valid certificate.",
-    glow: "shadow-red-500/10 border-red-500/30",
+    cardBorder: "border-[#C5221F]/40",
   },
 };
 
@@ -67,7 +67,7 @@ const formatDate = (dateStr) => {
   }
 };
 
-const HomeDocumentVerifier = ({ darkMode = true }) => {
+const HomeDocumentVerifier = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("file"); // "file" | "hash"
   const [file, setFile] = useState(null);
@@ -188,30 +188,20 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
   const targetId = cert?.certificateHash || cert?._id || hashInput.trim();
 
   return (
-    <div
-      className={`relative w-full rounded-3xl border transition-all duration-300 p-6 sm:p-10 shadow-2xl backdrop-blur-2xl ${
-        darkMode
-          ? "border-white/10 bg-[#0B1120]/90 text-white shadow-blue-950/30"
-          : "border-slate-200 bg-white/95 text-slate-900 shadow-slate-200/80"
-      }`}
-    >
-      {/* Top Banner & Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10 dark:border-white/10">
+    <div className="w-full rounded-xl border border-[#D9E1E8] bg-white p-6 sm:p-8 shadow-xs text-[#191919]">
+      {/* Top Header & Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#D9E1E8]">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            Public Verification Engine • No Login Needed
-          </div>
-          <h3 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Verify Certificate Authenticity
+          <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-[#191919]">
+            Verify a Certificate
           </h3>
-          <p className="text-sm text-slate-400 mt-1">
-            Instantly upload any certificate PDF or Image (PNG, JPG, WebP) to check if it's genuinely registered on the SkillSync blockchain ledger.
+          <p className="text-xs sm:text-sm text-[#666666] mt-0.5">
+            Check if a document is registered and authentic on the blockchain.
           </p>
         </div>
 
         {/* Tab Buttons */}
-        <div className="flex items-center self-start sm:self-auto rounded-xl p-1 bg-black/20 dark:bg-white/5 border border-white/10">
+        <div className="flex items-center self-start sm:self-auto rounded-lg p-1 bg-[#F3F6F8] border border-[#D9E1E8]">
           <button
             type="button"
             onClick={() => {
@@ -219,13 +209,13 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
               setResult(null);
               setError("");
             }}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${
               activeTab === "file"
-                ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow"
-                : "text-slate-400 hover:text-white"
+                ? "bg-[#0A66C2] text-white shadow-xs"
+                : "text-[#666666] hover:text-[#191919]"
             }`}
           >
-            📄 Upload File / Image
+            Upload Document
           </button>
           <button
             type="button"
@@ -234,20 +224,20 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
               setResult(null);
               setError("");
             }}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${
               activeTab === "hash"
-                ? "bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow"
-                : "text-slate-400 hover:text-white"
+                ? "bg-[#0A66C2] text-white shadow-xs"
+                : "text-[#666666] hover:text-[#191919]"
             }`}
           >
-            🔍 By Hash / ID
+            Enter Hash / ID
           </button>
         </div>
       </div>
 
       {/* Verification Inputs Form */}
       {!result && (
-        <div className="mt-8">
+        <div className="mt-6">
           {activeTab === "file" ? (
             <form onSubmit={handleVerifyFile}>
               <div
@@ -258,14 +248,12 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
                 onDragLeave={() => setDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => inputRef.current?.click()}
-                className={`relative rounded-2xl border-2 border-dashed p-8 sm:p-12 text-center cursor-pointer transition-all duration-300 ${
+                className={`relative rounded-lg border-2 border-dashed p-8 text-center cursor-pointer transition-colors duration-150 ${
                   dragging
-                    ? "border-blue-500 bg-blue-500/10 scale-[1.01]"
+                    ? "border-[#0A66C2] bg-[#E8F3FF]"
                     : file
-                    ? "border-emerald-500/60 bg-emerald-500/5 hover:border-emerald-500"
-                    : darkMode
-                    ? "border-white/15 bg-white/[0.02] hover:border-blue-500/50 hover:bg-white/[0.05]"
-                    : "border-slate-300 bg-slate-50/50 hover:border-blue-500 hover:bg-blue-50/40"
+                    ? "border-[#16805D] bg-[#F3F6F8]"
+                    : "border-[#D9E1E8] bg-[#F3F6F8]/60 hover:border-[#0A66C2] hover:bg-[#F3F6F8]"
                 }`}
               >
                 <input
@@ -283,39 +271,39 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
                         <img
                           src={previewUrl}
                           alt="Certificate Preview"
-                          className="h-28 max-w-xs object-contain rounded-xl border border-emerald-500/30 shadow-md bg-black/20"
+                          className="h-24 max-w-xs object-contain rounded-md border border-[#D9E1E8] shadow-xs bg-white"
                         />
-                        <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white shadow">
+                        <span className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#16805D] text-white">
                           Image
                         </span>
                       </div>
                     ) : (
-                      <div className="h-16 w-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-3xl mb-3 shadow-lg shadow-emerald-500/10">
+                      <div className="h-12 w-12 rounded-lg bg-[#E8F3FF] text-[#0A66C2] flex items-center justify-center text-xl mb-3 border border-[#D9E1E8]">
                         📄
                       </div>
                     )}
-                    <p className="text-base font-semibold text-emerald-400 max-w-md truncate">
+                    <p className="text-sm font-semibold text-[#191919] max-w-md truncate">
                       {file.name}
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-[#666666] mt-0.5">
                       {(file.size / 1024).toFixed(1)} KB • {previewUrl ? "Image" : "PDF"} Document Ready
                     </p>
-                    <span className="mt-3 text-xs text-blue-400 hover:underline">
-                      Click to choose a different file
+                    <span className="mt-2 text-xs font-medium text-[#0A66C2] hover:underline">
+                      Choose another file
                     </span>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <div className="h-16 w-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-3xl mb-3">
-                      ☁️
+                    <div className="h-12 w-12 rounded-lg bg-[#E8F3FF] text-[#0A66C2] flex items-center justify-center text-xl mb-3">
+                      📁
                     </div>
-                    <p className="text-base font-semibold">
-                      Drag & Drop your Certificate PDF or Image here
+                    <p className="text-sm font-semibold text-[#191919]">
+                      Drag & drop certificate here, or browse
                     </p>
-                    <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                      Upload the original PDF or Image (PNG, JPG, WebP) to calculate its cryptographic SHA-256 hash and verify with on-chain records
+                    <p className="text-xs text-[#666666] mt-0.5">
+                      PDF, PNG, JPG, or WebP
                     </p>
-                    <span className="mt-4 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 transition">
+                    <span className="mt-3 inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-[#0A66C2] border border-[#0A66C2] hover:bg-[#E8F3FF] transition">
                       Browse Files
                     </span>
                   </div>
@@ -323,28 +311,25 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
               </div>
 
               {error && (
-                <div className="mt-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
+                <div className="mt-4 px-3.5 py-2.5 rounded-md bg-[#FCE8E6] border border-[#C5221F]/30 text-[#C5221F] text-xs font-medium flex items-center gap-2">
                   <span>⚠️</span>
                   <span>{error}</span>
                 </div>
               )}
 
-              <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <div className="mt-5 flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
                   disabled={loading || !file}
-                  className="flex-1 py-3.5 px-6 rounded-xl font-semibold text-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white shadow-xl shadow-blue-600/20 hover:shadow-blue-600/35 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-5 rounded-md font-semibold text-sm bg-[#0A66C2] text-white hover:bg-[#004182] disabled:opacity-50 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
                       <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>{loadingStep || "Verifying Document..."}</span>
+                      <span>{loadingStep || "Verifying..."}</span>
                     </>
                   ) : (
-                    <>
-                      <span>🔍</span>
-                      <span>Verify Document Authenticity</span>
-                    </>
+                    <span>Verify Document</span>
                   )}
                 </button>
 
@@ -352,7 +337,7 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="py-3.5 px-5 rounded-xl text-xs font-semibold border border-white/10 hover:bg-white/10 text-slate-400 hover:text-white transition"
+                    className="py-2.5 px-4 rounded-md text-xs font-semibold border border-[#D9E1E8] bg-white text-[#666666] hover:bg-[#F3F6F8] transition cursor-pointer"
                   >
                     Clear
                   </button>
@@ -363,7 +348,7 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
             <form onSubmit={handleVerifyHash}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-[#666666] uppercase tracking-wider mb-1.5">
                     Certificate Hash (SHA-256) or Certificate ID
                   </label>
                   <div className="relative">
@@ -374,18 +359,14 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
                         setHashInput(e.target.value);
                         setError("");
                       }}
-                      placeholder="e.g. 0x7995e693cabe27de93cb50ac884dd19943c479029303b62affa37b07a4f969ba or Certificate ID"
-                      className={`w-full rounded-xl px-4 py-3.5 font-mono text-xs sm:text-sm border transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        darkMode
-                          ? "bg-black/30 border-white/15 text-white placeholder-slate-600"
-                          : "bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400"
-                      }`}
+                      placeholder="e.g. 0x7995e693cabe27de93cb50ac884dd19943c479029303b62affa37b07a4f969ba"
+                      className="w-full rounded-md px-3.5 py-2.5 font-mono text-xs sm:text-sm border border-[#D9E1E8] bg-white text-[#191919] placeholder-[#999999] focus:outline-none focus:border-[#0A66C2] focus:ring-1 focus:ring-[#0A66C2]"
                     />
                     {hashInput && (
                       <button
                         type="button"
                         onClick={() => setHashInput("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs px-2 py-1"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#666666] hover:text-[#191919] text-xs px-1.5 py-0.5"
                       >
                         ✕
                       </button>
@@ -394,7 +375,7 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
                 </div>
 
                 {error && (
-                  <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
+                  <div className="px-3.5 py-2.5 rounded-md bg-[#FCE8E6] border border-[#C5221F]/30 text-[#C5221F] text-xs font-medium flex items-center gap-2">
                     <span>⚠️</span>
                     <span>{error}</span>
                   </div>
@@ -403,7 +384,7 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
                 <button
                   type="submit"
                   disabled={loading || !hashInput.trim()}
-                  className="w-full py-3.5 px-6 rounded-xl font-semibold text-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white shadow-xl shadow-blue-600/20 hover:shadow-blue-600/35 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-5 rounded-md font-semibold text-sm bg-[#0A66C2] text-white hover:bg-[#004182] disabled:opacity-50 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -411,10 +392,7 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
                       <span>{loadingStep || "Checking Blockchain..."}</span>
                     </>
                   ) : (
-                    <>
-                      <span>🔍</span>
-                      <span>Verify Certificate Hash</span>
-                    </>
+                    <span>Verify Certificate Hash</span>
                   )}
                 </button>
               </div>
@@ -425,102 +403,102 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
 
       {/* Verification Result Display */}
       {result && (
-        <div className={`mt-8 rounded-2xl border p-6 sm:p-8 transition-all animate-fadeIn ${outcome.glow} ${darkMode ? "bg-white/[0.03]" : "bg-slate-50/70"}`}>
+        <div className={`mt-6 rounded-lg border p-5 sm:p-6 transition-all bg-[#F3F6F8]/60 ${outcome.cardBorder}`}>
           {/* Header Status Badge */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <span className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold border tracking-wider ${outcome.badgeClass}`}>
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#D9E1E8]">
+            <div className="flex items-center gap-2.5">
+              <span className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-bold tracking-wide ${outcome.badgeClass}`}>
                 {outcome.badge}
               </span>
-              <span className="text-xs text-slate-400">
-                Verified at {new Date().toLocaleTimeString()}
+              <span className="text-xs text-[#666666]">
+                Checked at {new Date().toLocaleTimeString()}
               </span>
             </div>
             <button
               onClick={handleReset}
-              className="text-xs text-blue-400 hover:text-blue-300 font-medium underline flex items-center gap-1"
+              className="text-xs text-[#0A66C2] hover:text-[#004182] font-semibold underline cursor-pointer"
             >
-              <span>↺</span> Verify Another Document
+              Verify Another Document
             </button>
           </div>
 
           {/* Outcome Title & Description */}
-          <div className="mt-5">
-            <h4 className="text-xl sm:text-2xl font-bold tracking-tight">
+          <div className="mt-4">
+            <h4 className="text-lg sm:text-xl font-bold tracking-tight text-[#191919]">
               {outcome.title}
             </h4>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-xs sm:text-sm text-[#666666] mt-1">
               {result.message || outcome.desc}
             </p>
           </div>
 
           {/* Computed Hash Display */}
           {(result.computedHash || cert?.certificateHash) && (
-            <div className={`mt-5 rounded-xl p-3.5 font-mono text-xs flex items-center justify-between gap-3 ${darkMode ? "bg-black/40 border border-white/10" : "bg-white border border-slate-200"}`}>
+            <div className="mt-4 rounded-md p-3 font-mono text-xs flex items-center justify-between gap-3 bg-white border border-[#D9E1E8]">
               <div className="min-w-0">
-                <span className="text-slate-500 block text-[10px] uppercase tracking-wider font-sans mb-0.5">
+                <span className="text-[#666666] block text-[10px] uppercase font-sans font-semibold mb-0.5">
                   Document SHA-256 Hash
                 </span>
-                <span className="text-slate-300 break-all">
+                <span className="text-[#191919] break-all font-mono">
                   {result.computedHash || cert?.certificateHash}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => handleCopyHash(result.computedHash || cert?.certificateHash)}
-                className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs bg-white/10 hover:bg-white/20 text-slate-200 transition"
+                className="shrink-0 px-2.5 py-1 rounded-md text-xs bg-[#F3F6F8] hover:bg-[#E8F3FF] text-[#0A66C2] font-medium border border-[#D9E1E8] transition cursor-pointer"
               >
-                {copiedHash ? "✓ Copied" : "Copy"}
+                {copiedHash ? "Copied" : "Copy"}
               </button>
             </div>
           )}
 
           {/* Certificate Found Details Card */}
           {cert && (
-            <div className="mt-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="mt-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {/* Certificate Name */}
-                <div className={`p-4 rounded-xl border ${darkMode ? "bg-white/[0.02] border-white/5" : "bg-white border-slate-200"}`}>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">Certificate Title</p>
-                  <p className="text-base font-semibold mt-1 text-slate-100 dark:text-white">
+                <div className="p-3.5 rounded-md border border-[#D9E1E8] bg-white">
+                  <p className="text-[11px] text-[#666666] uppercase font-semibold">Certificate Title</p>
+                  <p className="text-sm font-semibold mt-1 text-[#191919]">
                     {cert.certificateName || "Certified Achievement"}
                   </p>
                   {cert.certificateType && (
-                    <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    <span className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded bg-[#E8F3FF] text-[#0A66C2] font-medium">
                       {cert.certificateType}
                     </span>
                   )}
                 </div>
 
                 {/* Recipient Student */}
-                <div className={`p-4 rounded-xl border ${darkMode ? "bg-white/[0.02] border-white/5" : "bg-white border-slate-200"}`}>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">Issued To</p>
-                  <p className="text-base font-semibold mt-1 text-slate-100 dark:text-white">
+                <div className="p-3.5 rounded-md border border-[#D9E1E8] bg-white">
+                  <p className="text-[11px] text-[#666666] uppercase font-semibold">Issued To</p>
+                  <p className="text-sm font-semibold mt-1 text-[#191919]">
                     {cert.student?.name || "Verified Student"}
                   </p>
                   {(cert.student?.usn || cert.student?.college) && (
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-[#666666] mt-0.5">
                       {[cert.student?.usn, cert.student?.college].filter(Boolean).join(" • ")}
                     </p>
                   )}
                 </div>
 
                 {/* Issuer */}
-                <div className={`p-4 rounded-xl border ${darkMode ? "bg-white/[0.02] border-white/5" : "bg-white border-slate-200"}`}>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">Issuing Authority</p>
-                  <p className="text-sm font-semibold mt-1 text-slate-200">
+                <div className="p-3.5 rounded-md border border-[#D9E1E8] bg-white">
+                  <p className="text-[11px] text-[#666666] uppercase font-semibold">Issuing Authority</p>
+                  <p className="text-sm font-medium mt-1 text-[#191919]">
                     {cert.issuer || "Authorized Organisation"}
                   </p>
                 </div>
 
                 {/* Dates */}
-                <div className={`p-4 rounded-xl border ${darkMode ? "bg-white/[0.02] border-white/5" : "bg-white border-slate-200"}`}>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">Issue Date</p>
-                  <p className="text-sm font-semibold mt-1 text-slate-200">
+                <div className="p-3.5 rounded-md border border-[#D9E1E8] bg-white">
+                  <p className="text-[11px] text-[#666666] uppercase font-semibold">Issue Date</p>
+                  <p className="text-sm font-medium mt-1 text-[#191919]">
                     {formatDate(cert.issueDate)}
                   </p>
                   {cert.expiryDate && (
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-[#666666] mt-0.5">
                       Expires: {formatDate(cert.expiryDate)}
                     </p>
                   )}
@@ -529,11 +507,10 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
 
               {/* Blockchain Transaction Proof */}
               {cert.transactionHash && (
-                <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 ${darkMode ? "bg-blue-950/20 border-blue-500/20" : "bg-blue-50/50 border-blue-200"}`}>
+                <div className="p-3 rounded-md border border-[#D9E1E8] bg-white flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-blue-400">⛓️</span>
-                    <span className="text-xs text-slate-400">Blockchain Transaction:</span>
-                    <span className="font-mono text-xs text-blue-400 truncate max-w-[200px] sm:max-w-xs">
+                    <span className="text-xs text-[#666666]">Blockchain Tx:</span>
+                    <span className="font-mono text-xs text-[#0A66C2] truncate max-w-[220px] sm:max-w-sm">
                       {cert.transactionHash}
                     </span>
                   </div>
@@ -541,28 +518,28 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
                     href={`https://sepolia.etherscan.io/tx/${cert.transactionHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-400 hover:text-blue-300 underline shrink-0 font-medium"
+                    className="text-xs text-[#0A66C2] hover:text-[#004182] underline shrink-0 font-medium"
                   >
-                    View on Etherscan ↗
+                    Etherscan ↗
                   </a>
                 </div>
               )}
 
-              {/* ACTION BUTTONS (The user requested direct navigation to verification & QR page) */}
-              <div className="mt-6 pt-5 border-t border-white/10 flex flex-col sm:flex-row gap-3">
+              {/* ACTION BUTTONS */}
+              <div className="mt-5 pt-4 border-t border-[#D9E1E8] flex flex-col sm:flex-row gap-2.5">
                 <Link
                   to={`/verify/${targetId}`}
-                  className="flex-1 py-3.5 px-6 rounded-xl font-semibold text-xs sm:text-sm text-center bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white shadow-xl shadow-blue-500/20 hover:shadow-blue-500/35 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-4 rounded-md font-semibold text-xs sm:text-sm text-center bg-[#0A66C2] text-white hover:bg-[#004182] transition flex items-center justify-center gap-1.5"
                 >
-                  <span>Produce Status of Certificate Page</span>
+                  <span>View Certificate Details</span>
                   <span>→</span>
                 </Link>
 
                 <Link
-                  to={`/verify-qr/${targetId}`}
-                  className="py-3.5 px-5 rounded-xl font-semibold text-xs sm:text-sm text-center border border-violet-500/40 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 transition-all flex items-center justify-center gap-2"
+                  to={`/verify/${targetId}?tab=qr`}
+                  className="py-2.5 px-4 rounded-md font-semibold text-xs sm:text-sm text-center border border-[#0A66C2] bg-white text-[#0A66C2] hover:bg-[#E8F3FF] transition flex items-center justify-center gap-1.5"
                 >
-                  <span>📱 View Scannable QR Code</span>
+                  <span>QR Code</span>
                 </Link>
 
                 {cert.certificateURL && (
@@ -570,9 +547,9 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
                     href={cert.certificateURL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-3.5 px-4 rounded-xl font-semibold text-xs text-center border border-white/10 hover:bg-white/10 text-slate-300 transition-all flex items-center justify-center gap-1.5"
+                    className="py-2.5 px-4 rounded-md font-semibold text-xs text-center border border-[#D9E1E8] bg-white text-[#666666] hover:bg-[#F3F6F8] transition flex items-center justify-center"
                   >
-                    <span>👁️ View Doc</span>
+                    View Document
                   </a>
                 )}
               </div>
@@ -581,20 +558,20 @@ const HomeDocumentVerifier = ({ darkMode = true }) => {
 
           {/* Not Registered / Not Found State actions */}
           {!cert && (
-            <div className="mt-6 pt-5 border-t border-white/10 flex flex-col sm:flex-row gap-3">
+            <div className="mt-5 pt-4 border-t border-[#D9E1E8] flex flex-col sm:flex-row gap-2.5">
               <button
                 type="button"
                 onClick={handleReset}
-                className="py-3 px-6 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/15 text-white transition"
+                className="py-2 px-4 rounded-md text-xs font-semibold bg-white border border-[#D9E1E8] text-[#191919] hover:bg-[#F3F6F8] transition cursor-pointer"
               >
                 Upload Different Document
               </button>
               <button
                 type="button"
                 onClick={() => navigate("/register")}
-                className="py-3 px-6 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow transition"
+                className="py-2 px-4 rounded-md text-xs font-semibold bg-[#0A66C2] text-white hover:bg-[#004182] transition cursor-pointer"
               >
-                Register as Student or Organisation →
+                Create Account to Register Credentials →
               </button>
             </div>
           )}

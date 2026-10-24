@@ -116,7 +116,7 @@ export const createJob = async (req, res) => {
 // ─── GET /api/employment/jobs ─────────────────────────────────────────────────
 export const getAllJobs = async (req, res) => {
   try {
-    const jobs = await Job.find({ isActive: true }).lean();
+    const jobs = await Job.find({ isActive: true }).sort({ createdAt: -1 }).lean();
 
     const jobsWithOrg = await Promise.all(
       jobs.map(async (job) => {
@@ -147,12 +147,54 @@ export const getJobById = async (req, res) => {
   }
 };
 
+// ─── PUT /api/employment/jobs/:jobId ─────────────────────────────────────────
+export const updateJob = async (req, res) => {
+  try {
+    const orgId = req.user?.userId || req.user?._id;
+    const { jobId } = req.params;
+    const { title, description, requiredSkills, employmentType, location, stipend, isActive } = req.body;
+
+    const job = await Job.findOne({ _id: jobId, organisation: orgId });
+    if (!job) {
+      return res.status(404).json({ message: "Job not found or unauthorized to edit this job." });
+    }
+
+    if (title !== undefined) job.title = title.trim();
+    if (description !== undefined) job.description = description.trim();
+    if (employmentType !== undefined) job.employmentType = employmentType;
+    if (location !== undefined) job.location = location.trim();
+    if (stipend !== undefined) job.stipend = stipend !== "" && stipend !== null ? Number(stipend) : null;
+    if (isActive !== undefined) job.isActive = Boolean(isActive);
+
+    if (requiredSkills !== undefined) {
+      job.requiredSkills = Array.isArray(requiredSkills)
+        ? requiredSkills
+        : typeof requiredSkills === "string"
+        ? requiredSkills.split(",").map((s) => s.trim()).filter(Boolean)
+        : job.requiredSkills;
+    }
+
+    await job.save();
+    const organisation = await resolveOrganisationDisplay(job.organisation);
+    return res.status(200).json({ ...job.toObject(), organisation });
+  } catch (error) {
+    console.error("Update job error:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 // ─── GET /api/employment/jobs/my ─────────────────────────────────────────────
 export const getMyJobs = async (req, res) => {
   try {
     const orgId = req.user?.userId || req.user?._id;
-    const jobs = await Job.find({ organisation: orgId });
-    return res.status(200).json(jobs);
+    const jobs = await Job.find({ organisation: orgId }).sort({ createdAt: -1 }).lean();
+    const jobsWithCounts = await Promise.all(
+      jobs.map(async (job) => {
+        const applicantCount = await Application.countDocuments({ job: job._id });
+        return { ...job, applicantCount };
+      })
+    );
+    return res.status(200).json(jobsWithCounts);
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -257,8 +299,9 @@ export const getApplicants = async (req, res) => {
       job: jobId,
       organisation: orgId,
     })
-      .populate("student", "name email usn college applicantId")
-      .populate("job");
+      .populate("student", "-password")
+      .populate("job")
+      .sort({ createdAt: -1 });
 
     return res.status(200).json(applicants);
   } catch (error) {
@@ -284,7 +327,7 @@ export const getApplicantDetail = async (req, res) => {
       job: jobId,
       organisation: orgId,
     })
-      .populate("student", "name email usn college applicantId")
+      .populate("student", "-password")
       .populate("job");
 
     if (!application) {
@@ -705,8 +748,9 @@ export const getOrganisationEmployees = async (req, res) => {
   try {
     const orgId = req.user?.userId || req.user?._id;
     const employees = await Employment.find({ organisation: orgId })
-      .populate("student", "name email usn college applicantId")
-      .populate("job", "title employmentType");
+      .populate("student", "-password")
+      .populate("job", "title description employmentType location")
+      .sort({ createdAt: -1 });
 
     return res.status(200).json(employees);
   } catch (error) {

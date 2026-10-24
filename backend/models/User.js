@@ -36,6 +36,41 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    bio: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    headline: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    skills: {
+      type: [String],
+      default: [],
+    },
+
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    githubUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    linkedinUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     organizationName: {
       type: String,
       default: "",
@@ -50,6 +85,18 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    experience: [
+      {
+        title: { type: String, default: "" },
+        company: { type: String, default: "" },
+        location: { type: String, default: "" },
+        startDate: { type: String, default: "" },
+        endDate: { type: String, default: "" },
+        current: { type: Boolean, default: false },
+        description: { type: String, default: "" },
+      },
+    ],
 
     // Blockchain identity — bytes32 hex string
     applicantId: {

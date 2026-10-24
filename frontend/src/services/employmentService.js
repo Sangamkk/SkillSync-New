@@ -17,6 +17,11 @@ export const createJob = async (jobData) => {
   return response.data;
 };
 
+export const updateJob = async (jobId, jobData) => {
+  const response = await api.put(`/employment/jobs/${jobId}`, jobData);
+  return response.data;
+};
+
 export const getMyJobs = async () => {
   const response = await api.get("/employment/jobs/my");
   return response.data;

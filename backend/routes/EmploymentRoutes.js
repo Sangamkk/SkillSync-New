@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createJob,
+  updateJob,
   getMyJobs,
   deleteJob,
   getAllJobs,
@@ -32,6 +33,13 @@ router.post(
     createJob
 );
 
+router.put(
+    "/jobs/:jobId",
+    authenticate,
+    authorizeRoles("ORGANISATION"),
+    updateJob
+);
+
 router.get(
     "/jobs/my",
     authenticate,
@@ -46,7 +54,7 @@ router.delete(
     deleteJob
 );
 
-// ─── Student: Jobs ────────────────────────────────────────────────────────────
+// ─── Shared & Student: Jobs ───────────────────────────────────────────────────
 
 router.get(
     "/jobs",
@@ -59,7 +67,7 @@ router.get(
 router.get(
     "/jobs/:jobId",
     authenticate,
-    authorizeRoles("STUDENT"),
+    authorizeRoles("STUDENT", "ORGANISATION"),
     getJobById
 );
 

@@ -224,8 +224,8 @@ const ProfessionalProfile = ({
                         <p className="text-base font-semibold">{project.name || "Project"}</p>
                         <p className="text-xs text-slate-500">{project.projectType || "Project"}</p>
                       </div>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${project.isVerified ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>
-                        {project.isVerified ? "Verified" : "Registered"}
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${project.isVerified ? "bg-emerald-500/10 text-emerald-400" : "bg-blue-500/10 text-blue-400"}`}>
+                        {project.isVerified ? "Verified" : "Project"}
                       </span>
                     </div>
                     <div className="mt-3 grid gap-3 text-sm text-slate-400 sm:grid-cols-2">
@@ -347,7 +347,7 @@ const ProfessionalProfile = ({
 
                           {(certificate.certificateHash || certificate._id) && (
                             <Link
-                              to={`/verify-qr/${certificate.certificateHash || certificate._id}`}
+                              to={`/verify/${certificate.certificateHash || certificate._id}`}
                               target="_blank"
                               rel="noreferrer"
                               className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
@@ -355,10 +355,10 @@ const ProfessionalProfile = ({
                                   ? "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
                                   : "border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200"
                               }`}
-                              title="Generate verification QR code"
+                              title="Verify authentic blockchain credentials & QR"
                             >
                               <span>🔍</span>
-                              <span>Verify</span>
+                              <span>Verify & QR</span>
                             </Link>
                           )}
 
