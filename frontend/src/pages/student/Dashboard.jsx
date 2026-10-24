@@ -1247,11 +1247,15 @@ export default function StudentDashboard() {
                           className="w-full rounded-md border border-[#D9E1E8] bg-[#F3F6F8] px-3 py-2 text-xs text-[#191919] focus:bg-white focus:border-[#0A66C2] focus:outline-none"
                         >
                           <option value="">-- Choose verified organisation --</option>
-                          {organisations.map((org) => (
-                            <option key={org._id || org.organisationId} value={org._id || org.organisationId}>
-                              {org.name} ({org.officialEmail || org.website || "Verified"})
-                            </option>
-                          ))}
+                          {organisations.map((org) => {
+                            const displayName = org.organisationName || org.name || "Unnamed Organisation";
+                            const typeInfo = org.organisationType || (org.website ? org.website.replace(/^https?:\/\//, "") : "Verified");
+                            return (
+                              <option key={org._id || org.organisationId} value={org._id || org.organisationId}>
+                                {displayName} ({typeInfo})
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                     </div>
@@ -1322,7 +1326,7 @@ export default function StudentDashboard() {
                                 </span>
                               </div>
                               <p className="text-[#666666] mt-1">
-                                Reviewing Organisation: <strong className="text-[#191919]">{org.name || "Organisation"}</strong>
+                                Reviewing Organisation: <strong className="text-[#191919]">{org.organisationName || org.name || "Organisation"}</strong>
                                 {req.createdAt && ` · Requested: ${new Date(req.createdAt).toLocaleDateString()}`}
                               </p>
                               {req.notes && (
@@ -1422,11 +1426,15 @@ export default function StudentDashboard() {
                           className="w-full rounded-md border border-[#D9E1E8] bg-[#F3F6F8] px-3 py-2 text-xs text-[#191919] focus:bg-white focus:border-[#0A66C2] focus:outline-none"
                         >
                           <option value="">-- Choose verified organisation --</option>
-                          {organisations.map((org) => (
-                            <option key={org._id || org.organisationId} value={org._id || org.organisationId}>
-                              {org.name} ({org.officialEmail || org.website || "Verified"})
-                            </option>
-                          ))}
+                          {organisations.map((org) => {
+                            const displayName = org.organisationName || org.name || "Unnamed Organisation";
+                            const typeInfo = org.organisationType || (org.website ? org.website.replace(/^https?:\/\//, "") : "Verified");
+                            return (
+                              <option key={org._id || org.organisationId} value={org._id || org.organisationId}>
+                                {displayName} ({typeInfo})
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                     </div>
@@ -1482,7 +1490,7 @@ export default function StudentDashboard() {
                                 </span>
                               </div>
                               <p className="text-[#666666] mt-1">
-                                Reviewing Organisation: <strong className="text-[#191919]">{org.name || "Organisation"}</strong>
+                                Reviewing Organisation: <strong className="text-[#191919]">{org.organisationName || org.name || "Organisation"}</strong>
                                 {req.createdAt && ` · Requested: ${new Date(req.createdAt).toLocaleDateString()}`}
                               </p>
                               {req.txHash && (
