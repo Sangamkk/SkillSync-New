@@ -714,7 +714,7 @@ async function testEmploymentWorkflow() {
     orgToken
   );
 
-  if (termStatus === 200 && termData.message === "Employment terminated") {
+  if (termStatus === 200 && (termData.message === "Employment terminated" || termData.message === "Employment terminated successfully")) {
     const duration = ((Date.now() - termStart) / 1000).toFixed(1);
     pass(`Employment terminated on Sepolia in ${duration}s; status updated to Terminated`);
   } else {

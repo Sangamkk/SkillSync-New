@@ -6,6 +6,7 @@ import OrganisationApplication from "../models/OrganisationApplication.js";
 import { employmentManager } from "../blockchain/contracts.js";
 import { ethers } from "ethers";
 import mongoose from "mongoose";
+import { createNotification } from "../services/notificationService.js";
 
 // ─── Employment type enum (matches Types.EmploymentType) ─────────────────────
 const EMPLOYMENT_TYPE = {
@@ -102,6 +103,46 @@ export const createJob = async (req, res) => {
       location: location || "Remote",
       stipend: stipend ?? null,
     });
+
+    // Resolve organisation display name
+    resolveOrganisationDisplay(organisationId).then((orgInfo) => {
+      const orgName = orgInfo?.name || orgInfo?.organisationName || "Your organisation";
+
+      // 1. Notify the Organisation
+      createNotification({
+        recipient: organisationId,
+        recipientRole: "ORGANISATION",
+        sender: null,
+        senderName: "SkillSync Jobs",
+        type: "JOB_POSTED",
+        title: "Job Opportunity Published 📢",
+        message: `Your job listing for "${job.title}" (${job.employmentType}) has been published and is now open for applicants.`,
+        link: "/organisation/jobs",
+        metadata: { activityId: `org_job_${job._id}`, jobId: job._id },
+      }).catch(() => {});
+
+      // 2. Notify students who have matching skills or active profiles
+      User.find({ role: "STUDENT" })
+        .select("_id email emailVerified emailNotificationsEnabled")
+        .limit(50)
+        .lean()
+        .then((students) => {
+          students.forEach((student) => {
+            createNotification({
+              recipient: student._id,
+              recipientRole: "STUDENT",
+              sender: organisationId,
+              senderName: orgName,
+              type: "JOB_POSTED",
+              title: `New Opportunity: ${job.title} 💼`,
+              message: `${orgName} just posted a new ${job.employmentType} role: "${job.title}". Check requirements and apply now!`,
+              link: "/student/jobs",
+              metadata: { activityId: `student_job_${job._id}_${student._id}`, jobId: job._id },
+            }).catch(() => {});
+          });
+        })
+        .catch(() => {});
+    }).catch(() => {});
 
     return res.status(201).json(job);
   } catch (error) {
@@ -230,6 +271,33 @@ export const applyToJob = async (req, res) => {
       organisation: job.organisation,
       status: "Applied",
     });
+
+    // Trigger Notifications
+    User.findById(studentId).select("name").then((stud) => {
+      const studentName = stud?.name || "A candidate";
+      createNotification({
+        recipient: job.organisation,
+        recipientRole: "ORGANISATION",
+        sender: studentId,
+        senderName: studentName,
+        type: "JOB_APPLICATION",
+        title: "New Job Applicant",
+        message: `${studentName} applied for "${job.title}".`,
+        link: `/organisation/applicants`,
+        metadata: { jobId: job._id, applicationId: application._id },
+      }).catch(() => {});
+    }).catch(() => {});
+
+    createNotification({
+      recipient: studentId,
+      recipientRole: "STUDENT",
+      sender: job.organisation,
+      type: "JOB_APPLICATION",
+      title: "Application Submitted",
+      message: `You applied for "${job.title}".`,
+      link: `/student/dashboard?tab=applied`,
+      metadata: { jobId: job._id, applicationId: application._id },
+    }).catch(() => {});
 
     return res.status(201).json(application);
   } catch (error) {
@@ -445,6 +513,34 @@ export const createEmploymentOffer = async (req, res) => {
     application.offerId = offerId;
     await application.save();
 
+    // Trigger Important Notification for Student
+    createNotification({
+      recipient: student._id || student,
+      recipientRole: "STUDENT",
+      sender: orgId,
+      senderName: org.organisationName,
+      type: "OFFER_EXTENDED",
+      isImportant: true,
+      title: "⭐ IMPORTANT: Official Job Offer Received! 💼",
+      message: `Congratulations! ${org.organisationName} has extended an official employment offer for "${job?.title || "position"}". Review offer details and respond.`,
+      link: "/student/offers",
+      metadata: { applicationId: application._id, offerId, jobId: job?._id },
+    }).catch(() => {});
+
+    // Trigger Confirmation Notification for Organisation
+    createNotification({
+      recipient: orgId,
+      recipientRole: "ORGANISATION",
+      sender: student._id || student,
+      senderName: student.name || "Candidate",
+      type: "OFFER_EXTENDED",
+      isImportant: true,
+      title: "Official Job Offer Dispatched ⭐",
+      message: `Official on-chain job offer for "${job?.title || "position"}" has been successfully sent to ${student.name || "the candidate"}.`,
+      link: "/organisation/jobs",
+      metadata: { applicationId: application._id, offerId, jobId: job?._id },
+    }).catch(() => {});
+
     return res.status(200).json({
       message: "Offer created",
       application,
@@ -579,6 +675,30 @@ export const acceptOffer = async (req, res) => {
     application.status = "Accepted";
     await application.save();
 
+    // Trigger Notifications
+    createNotification({
+      recipient: application.organisation,
+      recipientRole: "ORGANISATION",
+      sender: studentId,
+      senderName: student.name,
+      type: "OFFER_ACCEPTED",
+      title: "Job Offer Accepted! 🎉",
+      message: `${student.name} accepted your job offer. Added to active employees.`,
+      link: "/organisation?section=employees",
+      metadata: { applicationId: application._id, employmentId: employment._id },
+    }).catch(() => {});
+
+    createNotification({
+      recipient: studentId,
+      recipientRole: "STUDENT",
+      sender: application.organisation,
+      type: "OFFER_ACCEPTED",
+      title: "Offer Accepted",
+      message: "You accepted the offer! Welcome to the team.",
+      link: "/student/dashboard",
+      metadata: { applicationId: application._id, employmentId: employment._id },
+    }).catch(() => {});
+
     return res.status(200).json({
       message: "Offer accepted",
       employment,
@@ -656,6 +776,34 @@ export const rejectOffer = async (req, res) => {
 
     application.status = "Rejected";
     await application.save();
+
+    // Trigger Notifications for both Organisation and Student
+    Job.findById(application.job).select("title").lean().then((jobDoc) => {
+      const jobTitle = jobDoc?.title || "Opportunity";
+
+      createNotification({
+        recipient: application.organisation,
+        recipientRole: "ORGANISATION",
+        sender: studentId,
+        senderName: student.name || "Candidate",
+        type: "OFFER_REJECTED",
+        title: "Job Offer Declined",
+        message: `${student.name || "A candidate"} declined the employment offer for "${jobTitle}".`,
+        link: "/organisation/jobs",
+        metadata: { applicationId: application._id, offerId: application.offerId },
+      }).catch(() => {});
+
+      createNotification({
+        recipient: studentId,
+        recipientRole: "STUDENT",
+        sender: application.organisation,
+        type: "OFFER_REJECTED",
+        title: "Offer Declined",
+        message: `You declined the offer for "${jobTitle}".`,
+        link: "/student/offers",
+        metadata: { applicationId: application._id, offerId: application.offerId },
+      }).catch(() => {});
+    }).catch(() => {});
 
     return res.status(200).json({
       message: "Offer rejected",
@@ -830,6 +978,30 @@ export const terminateEmployment = async (req, res) => {
         { status: "Completed" }
       );
     }
+
+    // Trigger Notifications
+    createNotification({
+      recipient: employment.student,
+      recipientRole: "STUDENT",
+      sender: orgId,
+      senderName: org.organisationName,
+      type: "EMPLOYMENT_TERMINATED",
+      title: "Employment Concluded",
+      message: `Your employment at ${org.organisationName} has been concluded and recorded on blockchain.`,
+      link: "/student/dashboard",
+      metadata: { employmentId: employment._id },
+    }).catch(() => {});
+
+    createNotification({
+      recipient: orgId,
+      recipientRole: "ORGANISATION",
+      sender: employment.student,
+      type: "EMPLOYMENT_TERMINATED",
+      title: "Employment Terminated",
+      message: `Employment record terminated on blockchain.`,
+      link: "/organisation/employees",
+      metadata: { employmentId: employment._id },
+    }).catch(() => {});
 
     return res.status(200).json({
       message: "Employment terminated successfully",

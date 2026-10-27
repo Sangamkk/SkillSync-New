@@ -17,6 +17,9 @@ import {
     getOrganisationEmployees,
     terminateEmployment,
 } from "../../services/employmentService";
+import NotificationBell from "../../components/common/NotificationBell";
+import SettingsModal from "../../components/common/SettingsModal";
+import { FaCog } from "react-icons/fa";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -57,6 +60,7 @@ const PaginationBar = ({ currentPage, totalPages, totalItems, itemsPerPage, onPa
 const OrganisationDashboard = () => {
     const navigate = useNavigate();
     const { logout } = useAuth();
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // 4 Main Sections: "issue-cert", "requests", "jobs", "employees"
     const [mainSection, setMainSection] = useState("issue-cert");
@@ -401,19 +405,24 @@ const OrganisationDashboard = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <NotificationBell />
                         <button
                             type="button"
-                            onClick={() => {
-                                logout();
-                                navigate("/login");
-                            }}
-                            className="px-3.5 py-2 rounded-md text-xs font-semibold border border-[#D9E1E8] bg-white text-[#C5221F] hover:bg-[#FCE8E6] hover:border-[#C5221F]/30 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            onClick={() => setIsSettingsOpen(true)}
+                            title="Settings & Account"
+                            className="px-3.5 py-2 rounded-md text-xs font-semibold border border-[#D9E1E8] bg-white text-[#191919] hover:bg-[#F3F6F8] hover:border-[#0A66C2]/40 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
                         >
-                            <span>🚪</span>
-                            <span>Sign Out</span>
+                            <FaCog className="text-sm text-[#555555]" />
+                            <span>Settings</span>
                         </button>
                     </div>
                 </div>
+
+                {/* Global Settings & Preferences Modal */}
+                <SettingsModal
+                    isOpen={isSettingsOpen}
+                    onClose={() => setIsSettingsOpen(false)}
+                />
 
                 {/* 4 Main Summary Cards */}
                 <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

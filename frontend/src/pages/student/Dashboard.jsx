@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
   getAllJobs,
@@ -17,7 +17,14 @@ import {
 import {
   getStudentProjects,
   createProject,
+  getGitHubStatus,
+  getGitHubConnectUrl,
+  disconnectGitHub,
 } from "../../services/projectService";
+import GitHubRepoModal from "../../components/student/GitHubRepoModal";
+import NotificationBell from "../../components/common/NotificationBell";
+import SettingsModal from "../../components/common/SettingsModal";
+import { FaCog } from "react-icons/fa";
 import {
   createVerificationRequest,
   createProjectVerificationRequest,
@@ -66,7 +73,9 @@ const PaginationBar = ({ currentPage, totalPages, totalItems, itemsPerPage, onPa
 export default function StudentDashboard() {
   const { currentUser = {}, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // 3 Main Sections: "jobs", "verify", "upload" — Defaults to "jobs"
   const [mainSection, setMainSection] = useState(() => searchParams.get("section") || "jobs");
@@ -138,10 +147,117 @@ export default function StudentDashboard() {
   });
   const [submittingProjectUpload, setSubmittingProjectUpload] = useState(false);
 
+  // GitHub Modal & Integration state for Project Upload
+  const [showGitHubModal, setShowGitHubModal] = useState(false);
+  const [selectedGitHubRepo, setSelectedGitHubRepo] = useState(null);
+  const [gitHubAccount, setGitHubAccount] = useState({ connected: false, username: "" });
+  const [connectingGitHub, setConnectingGitHub] = useState(false);
+  const [disconnectingGitHub, setDisconnectingGitHub] = useState(false);
+
   // Fetch initial data
   useEffect(() => {
     fetchAllData();
   }, [currentUser]);
+
+  const checkGitHub = async () => {
+    try {
+      const status = await getGitHubStatus();
+      if (status.connected) {
+        setGitHubAccount({ connected: true, username: status.username });
+      } else {
+        setGitHubAccount({ connected: false, username: "" });
+      }
+    } catch (err) {
+      console.error("Failed to check GitHub status in Dashboard:", err);
+    }
+  };
+
+  // Check GitHub integration status & handle OAuth callback / repo passed via location state
+  useEffect(() => {
+    checkGitHub();
+
+    if (location.state?.selectedGitHubRepo) {
+      const repo = location.state.selectedGitHubRepo;
+      setSelectedGitHubRepo(repo);
+      setProjectUploadForm((prev) => ({
+        ...prev,
+        githubLink: repo.htmlUrl,
+        projectName: repo.name || prev.projectName,
+        description: repo.description || prev.description || "",
+      }));
+      setMainSection("upload");
+      setUploadSubTab("project-upload");
+    }
+
+    // Handle OAuth callback parameters in URL
+    const connectedParam = searchParams.get("github_connected");
+    const userParam = searchParams.get("github_user");
+    const errorParam = searchParams.get("github_error");
+
+    if (connectedParam === "true") {
+      setMainSection("upload");
+      setUploadSubTab("project-upload");
+      setGitHubAccount({ connected: true, username: userParam || "" });
+      setShowGitHubModal(true);
+      checkGitHub();
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("github_connected");
+      newParams.delete("github_user");
+      newParams.set("section", "upload");
+      newParams.set("tab", "project-upload");
+      setSearchParams(newParams, { replace: true });
+    } else if (errorParam) {
+      alert(`GitHub connection failed: ${errorParam}`);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("github_error");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [location.state, searchParams]);
+
+  const handleConnectGitHub = async () => {
+    try {
+      setConnectingGitHub(true);
+      const returnUrl = "/student/dashboard?section=upload&tab=project-upload";
+      const { authUrl } = await getGitHubConnectUrl(returnUrl);
+      if (authUrl) {
+        // Direct full-page navigation to GitHub's authorization page
+        window.location.href = authUrl;
+      } else {
+        alert("Could not generate GitHub authorization URL.");
+        setConnectingGitHub(false);
+      }
+    } catch (err) {
+      console.error("Failed to initiate GitHub OAuth:", err);
+      alert(err.response?.data?.message || "Failed to connect with GitHub.");
+      setConnectingGitHub(false);
+    }
+  };
+
+  const handleDisconnectGitHub = async () => {
+    if (!window.confirm("Are you sure you want to disconnect your GitHub account?")) return;
+    try {
+      setDisconnectingGitHub(true);
+      await disconnectGitHub();
+      setGitHubAccount({ connected: false, username: "" });
+      setSelectedGitHubRepo(null);
+    } catch (err) {
+      console.error("Failed to disconnect GitHub:", err);
+      alert(err.response?.data?.message || "Failed to disconnect GitHub.");
+    } finally {
+      setDisconnectingGitHub(false);
+    }
+  };
+
+  const handleRepoSelected = (repo) => {
+    setSelectedGitHubRepo(repo);
+    setProjectUploadForm((prev) => ({
+      ...prev,
+      githubLink: repo.htmlUrl,
+      projectName: repo.name || prev.projectName,
+      description: repo.description || prev.description || "",
+    }));
+    setShowGitHubModal(false);
+  };
 
   // Sync state with URL params
   const handleSwitchSection = (section, tab = null) => {
@@ -458,6 +574,7 @@ export default function StudentDashboard() {
         liveDemo: "",
         description: "",
       });
+      setSelectedGitHubRepo(null);
 
       // Refresh projects
       const projs = await getStudentProjects().catch(() => []);
@@ -598,6 +715,7 @@ export default function StudentDashboard() {
           </div>
 
           <div className="flex items-center gap-2">
+            <NotificationBell />
             <Link
               to="/student/profile"
               className="px-3.5 py-2 rounded-md text-xs font-semibold border border-[#D9E1E8] bg-white text-[#191919] hover:bg-[#F3F6F8] transition shadow-xs flex items-center gap-1.5"
@@ -607,14 +725,21 @@ export default function StudentDashboard() {
             </Link>
             <button
               type="button"
-              onClick={handleSignOut}
-              className="px-3.5 py-2 rounded-md text-xs font-semibold border border-[#D9E1E8] bg-white text-[#C5221F] hover:bg-[#FCE8E6] hover:border-[#C5221F]/30 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+              onClick={() => setIsSettingsOpen(true)}
+              title="Settings & Account"
+              className="px-3.5 py-2 rounded-md text-xs font-semibold border border-[#D9E1E8] bg-white text-[#191919] hover:bg-[#F3F6F8] hover:border-[#0A66C2]/40 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <span>🚪</span>
-              <span>Sign Out</span>
+              <FaCog className="text-sm text-[#555555]" />
+              <span>Settings</span>
             </button>
           </div>
         </div>
+
+        {/* Global Settings & Preferences Modal */}
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+        />
 
         {/* Global Action Banner */}
         {actionStatus.text && (
@@ -1869,9 +1994,56 @@ export default function StudentDashboard() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-[#191919] mb-1">
-                          GitHub Repository URL
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-semibold text-[#191919]">
+                            GitHub Repository URL
+                          </label>
+                          {gitHubAccount.connected ? (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setShowGitHubModal(true)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                                title="Choose a repository from your connected GitHub account"
+                              >
+                                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                  <path
+                                    fillRule="evenodd"
+                                    clipRule="evenodd"
+                                    d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                                  />
+                                </svg>
+                                <span>Select @{gitHubAccount.username} Repo</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleDisconnectGitHub}
+                                disabled={disconnectingGitHub}
+                                className="px-2 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50"
+                                title="Disconnect your GitHub account"
+                              >
+                                {disconnectingGitHub ? "…" : "Disconnect"}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleConnectGitHub}
+                              disabled={connectingGitHub}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border border-[#0A66C2]/40 bg-[#0A66C2]/10 text-[#0A66C2] hover:bg-[#0A66C2]/15 disabled:opacity-60"
+                              title="Connect with GitHub in a separate page"
+                            >
+                              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                <path
+                                  fillRule="evenodd"
+                                  clipRule="evenodd"
+                                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                                />
+                              </svg>
+                              <span>{connectingGitHub ? "Redirecting to GitHub…" : "Connect with GitHub"}</span>
+                            </button>
+                          )}
+                        </div>
                         <input
                           type="url"
                           placeholder="https://github.com/username/project"
@@ -1881,6 +2053,29 @@ export default function StudentDashboard() {
                           }
                           className="w-full rounded-md border border-[#D9E1E8] bg-[#F3F6F8] px-3 py-2 text-xs text-[#191919] focus:bg-white focus:border-[#0A66C2] focus:outline-none"
                         />
+                        {selectedGitHubRepo && (
+                          <div className="mt-2 p-2.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="font-bold">✓ Selected:</span>
+                              <span className="font-mono text-[11px] truncate">{selectedGitHubRepo.name}</span>
+                              {selectedGitHubRepo.language && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-200/60 font-semibold">
+                                  {selectedGitHubRepo.language}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedGitHubRepo(null);
+                                setProjectUploadForm({ ...projectUploadForm, githubLink: "" });
+                              }}
+                              className="text-emerald-700 hover:text-emerald-900 text-[11px] cursor-pointer ml-2"
+                            >
+                              ✕ Remove
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -2034,6 +2229,15 @@ export default function StudentDashboard() {
           </div>
         )}
       </div>
+
+      {/* GitHub Repo Selector Modal for Dashboard Project Upload */}
+      <GitHubRepoModal
+        isOpen={showGitHubModal}
+        onClose={() => setShowGitHubModal(false)}
+        onSelectRepo={handleRepoSelected}
+        darkMode={false}
+        returnUrl="/student/dashboard?section=upload&tab=project-upload"
+      />
     </div>
   );
 }

@@ -65,10 +65,68 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // GitHub OAuth fields
+    githubConnected: {
+      type: Boolean,
+      default: false,
+    },
+
+    githubId: {
+      type: String,
+      default: "",
+      index: true,
+    },
+
+    githubUsername: {
+      type: String,
+      default: "",
+    },
+
+    githubAvatarUrl: {
+      type: String,
+      default: "",
+    },
+
+    githubAccessToken: {
+      type: String,
+      default: "",
+      select: false, // Never return in queries or expose to frontend
+    },
+
+    githubConnectedAt: {
+      type: Date,
+      default: null,
+    },
+
     linkedinUrl: {
       type: String,
       default: "",
       trim: true,
+    },
+
+    website: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    emailVerified: {
+      type: Boolean,
+      default: true,
+    },
+
+    emailNotificationsEnabled: {
+      type: Boolean,
+      default: true,
+    },
+
+    notificationPreferences: {
+      jobOffers: { type: Boolean, default: true },
+      jobPostings: { type: Boolean, default: true },
+      applications: { type: Boolean, default: true },
+      certificates: { type: Boolean, default: true },
+      verifications: { type: Boolean, default: true },
+      projects: { type: Boolean, default: true },
     },
 
     organizationName: {

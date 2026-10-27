@@ -11,6 +11,9 @@ import {
   getMyRequests,
 } from "../../services/verificationService";
 import { getVerifiedOrganisations } from "../../services/organisationService";
+import NotificationBell from "../../components/common/NotificationBell";
+import SettingsModal from "../../components/common/SettingsModal";
+import { FaCog } from "react-icons/fa";
 
 const Certificate = () => {
   const navigate = useNavigate();
@@ -20,6 +23,7 @@ const Certificate = () => {
   // Active view tab: "my-certs" | "upload" | "requests"
   const initialTab = searchParams.get("tab") || "my-certs";
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Data states
   const [certificates, setCertificates] = useState([]);
@@ -407,6 +411,15 @@ const Certificate = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell />
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(true)}
+              title="Settings & Account"
+              className="p-2 rounded-md border border-[#D9E1E8] bg-white text-[#555555] hover:text-[#0A66C2] hover:bg-[#F3F6F8] transition cursor-pointer"
+            >
+              <FaCog className="text-sm" />
+            </button>
             <button
               onClick={() => handleTabChange("upload")}
               className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#0A66C2] hover:bg-[#004182] rounded-md transition shadow-xs cursor-pointer"
@@ -422,6 +435,12 @@ const Certificate = () => {
           </div>
         </div>
       </header>
+
+      {/* Global Settings & Preferences Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
 
       {/* Main Workspace Container */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

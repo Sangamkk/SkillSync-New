@@ -4,6 +4,7 @@ import Project from "../models/Project.js";
 import User from "../models/User.js";
 import OrganisationApplication from "../models/OrganisationApplication.js";
 import { requestManager, applicantManager } from "../blockchain/contracts.js";
+import { createNotification } from "../services/notificationService.js";
 
 // ─── Enum constants (matches Types.sol) ──────────────────────────────────────
 const REQUEST_TYPE = {
@@ -193,6 +194,31 @@ export const createVerificationRequest = async (req, res) => {
 
     console.log(`[VERIFICATION REQUEST] Created: ${verificationRequest._id}`);
 
+    // Trigger Notifications
+    createNotification({
+      recipient: organisationId,
+      recipientRole: "ORGANISATION",
+      sender: studentId,
+      senderName: student.name,
+      type: "VERIFICATION_REQUESTED",
+      title: "New Verification Request",
+      message: `${student.name} requested verification for certificate "${certificate.certificateName}".`,
+      link: "/organisation?section=requests",
+      metadata: { requestId: verificationRequest._id, certificateId: certificate._id },
+    }).catch(() => {});
+
+    createNotification({
+      recipient: studentId,
+      recipientRole: "STUDENT",
+      sender: organisationId,
+      senderName: organisation.organisationName,
+      type: "VERIFICATION_REQUESTED",
+      title: "Verification Request Sent",
+      message: `Your request for "${certificate.certificateName}" was sent to ${organisation.organisationName}.`,
+      link: "/student/certificates",
+      metadata: { requestId: verificationRequest._id, certificateId: certificate._id },
+    }).catch(() => {});
+
     return res.status(201).json({
       success: true,
       message: "Verification request submitted successfully",
@@ -345,6 +371,31 @@ export const createProjectVerificationRequest = async (req, res) => {
       blockchainRequestId,
       createTxHash: transaction.hash,
     });
+
+    // Trigger Notifications
+    createNotification({
+      recipient: organisationId,
+      recipientRole: "ORGANISATION",
+      sender: studentId,
+      senderName: student.name,
+      type: "VERIFICATION_REQUESTED",
+      title: "Project Verification Request",
+      message: `${student.name} requested verification for project "${project.projectName}".`,
+      link: "/organisation?section=requests",
+      metadata: { requestId: verificationRequest._id, projectId: project._id },
+    }).catch(() => {});
+
+    createNotification({
+      recipient: studentId,
+      recipientRole: "STUDENT",
+      sender: organisationId,
+      senderName: organisation.organisationName,
+      type: "VERIFICATION_REQUESTED",
+      title: "Project Verification Request Sent",
+      message: `Your project "${project.projectName}" was sent to ${organisation.organisationName} for verification.`,
+      link: "/student/projects",
+      metadata: { requestId: verificationRequest._id, projectId: project._id },
+    }).catch(() => {});
 
     return res.status(201).json({
       success: true,
@@ -569,6 +620,41 @@ export const approveRequest = async (req, res) => {
       console.log(`[VERIFICATION] Project ${request.project} marked as APPROVED`);
     }
 
+    // Trigger Notifications
+    VerificationRequest.findById(request._id)
+      .populate("student", "name")
+      .populate("certificate", "certificateName")
+      .populate("project", "projectName")
+      .then((popReq) => {
+        const itemName = popReq?.certificate?.certificateName || popReq?.project?.projectName || "credential";
+        const studentName = popReq?.student?.name || "Student";
+
+        createNotification({
+          recipient: request.student,
+          recipientRole: "STUDENT",
+          sender: orgId,
+          senderName: organisation.organisationName,
+          type: "VERIFICATION_APPROVED",
+          title: "Verification Approved! 🎉",
+          message: `Your ${request.requestType || "credential"} "${itemName}" was verified on blockchain by ${organisation.organisationName}.`,
+          link: request.requestType === "project" ? "/student/projects" : "/student/certificates",
+          metadata: { requestId: request._id, txHash: transaction.hash },
+        }).catch(() => {});
+
+        createNotification({
+          recipient: orgId,
+          recipientRole: "ORGANISATION",
+          sender: request.student,
+          senderName: studentName,
+          type: "VERIFICATION_APPROVED",
+          title: "Verification Approved",
+          message: `You approved verification for ${studentName}'s "${itemName}". Recorded on blockchain.`,
+          link: "/organisation?section=history",
+          metadata: { requestId: request._id, txHash: transaction.hash },
+        }).catch(() => {});
+      })
+      .catch((err) => console.warn("Notification error in approveRequest:", err.message));
+
     return res.status(200).json({
       success: true,
       message: "Verification request approved successfully",
@@ -668,6 +754,41 @@ export const rejectRequest = async (req, res) => {
         rejectionReason: reason || "Rejected by organisation",
       });
     }
+
+    // Trigger Notifications
+    VerificationRequest.findById(request._id)
+      .populate("student", "name")
+      .populate("certificate", "certificateName")
+      .populate("project", "projectName")
+      .then((popReq) => {
+        const itemName = popReq?.certificate?.certificateName || popReq?.project?.projectName || "credential";
+        const studentName = popReq?.student?.name || "Student";
+
+        createNotification({
+          recipient: request.student,
+          recipientRole: "STUDENT",
+          sender: orgId,
+          senderName: organisation.organisationName,
+          type: "VERIFICATION_REJECTED",
+          title: "Verification Rejected",
+          message: `Your verification request for "${itemName}" was rejected by ${organisation.organisationName}.${reason ? ` Reason: ${reason}` : ""}`,
+          link: request.requestType === "project" ? "/student/projects" : "/student/certificates",
+          metadata: { requestId: request._id, reason },
+        }).catch(() => {});
+
+        createNotification({
+          recipient: orgId,
+          recipientRole: "ORGANISATION",
+          sender: request.student,
+          senderName: studentName,
+          type: "VERIFICATION_REJECTED",
+          title: "Verification Rejected",
+          message: `You rejected ${studentName}'s verification request for "${itemName}".`,
+          link: "/organisation?section=history",
+          metadata: { requestId: request._id, reason },
+        }).catch(() => {});
+      })
+      .catch((err) => console.warn("Notification error in rejectRequest:", err.message));
 
     return res.status(200).json({
       success: true,

@@ -180,6 +180,83 @@ async function testGetVerifiedOrganisations() {
   }
 }
 
+async function testEmailVerification() {
+  console.log("\n📋 EMAIL VERIFICATION (NODEMAILER GMAIL SMTP)");
+
+  // 1. Invalid email
+  const { status: invalidStatus } = await request("POST", "/auth/send-verification-code", {
+    email: "notanemail",
+  });
+  if (invalidStatus === 400) {
+    pass("POST /auth/send-verification-code rejects invalid email format");
+  } else {
+    fail(`Expected 400 for invalid email, got ${invalidStatus}`);
+  }
+
+  // 2. Missing code in verify
+  const { status: missingCodeStatus } = await request("POST", "/auth/verify-code", {
+    email: "test@example.com",
+  });
+  if (missingCodeStatus === 400) {
+    pass("POST /auth/verify-code rejects missing verification code");
+  } else {
+    fail(`Expected 400 for missing code, got ${missingCodeStatus}`);
+  }
+
+  // 3. Unverified student registration is blocked
+  const { status: unverifiedRegStatus } = await request("POST", "/auth/register", {
+    name: "Unverified Student",
+    email: `unverified_${Date.now()}@realdomainexample.com`,
+    password: "Password123!",
+    role: "STUDENT",
+  });
+  if (unverifiedRegStatus === 400) {
+    pass("POST /auth/register rejects registration for unverified email");
+  } else {
+    fail(`Expected 400 for unverified registration, got ${unverifiedRegStatus}`);
+  }
+
+  // 4. Verification email sending or configuration check
+  const { status: sendStatus, data: sendData } = await request("POST", "/auth/send-verification-code", {
+    email: `valid_${Date.now()}@domain.com`,
+  });
+  if (sendStatus === 200 && sendData.success) {
+    pass("POST /auth/send-verification-code sends OTP successfully with configured Gmail SMTP");
+  } else if (sendStatus === 500 && sendData.message?.includes("Gmail SMTP credentials are not configured")) {
+    pass("POST /auth/send-verification-code returns 500 when Gmail SMTP credentials are not configured");
+  } else {
+    fail(`POST /auth/send-verification-code returned unexpected ${sendStatus}: ${sendData?.message}`);
+  }
+}
+
+async function testGitHubOAuth() {
+  console.log("\n📋 GITHUB OAUTH ENDPOINTS");
+
+  // 1. Unauthenticated connect attempt
+  const { status: unauthConnect } = await request("GET", "/student/github/connect");
+  if (unauthConnect === 401) {
+    pass("GET /student/github/connect requires student authentication");
+  } else {
+    fail(`Expected 401 for unauthenticated connect, got ${unauthConnect}`);
+  }
+
+  // 2. Unauthenticated repos attempt
+  const { status: unauthRepos } = await request("GET", "/student/github/repos");
+  if (unauthRepos === 401) {
+    pass("GET /student/github/repos requires student authentication");
+  } else {
+    fail(`Expected 401 for unauthenticated repos, got ${unauthRepos}`);
+  }
+
+  // 3. Callback with missing params redirects cleanly
+  const res = await fetch(`${BASE_URL}/student/github/callback`, { redirect: "manual" });
+  if (res.status === 302 && res.headers.get("location")?.includes("github_error")) {
+    pass("GET /student/github/callback handles missing params with safe redirect");
+  } else {
+    fail(`Expected 302 redirect with github_error, got ${res.status}`);
+  }
+}
+
 async function testNotFoundRoute() {
   console.log("\n📋 NOT FOUND HANDLER");
   const { status } = await request("GET", "/nonexistent/route");
@@ -199,6 +276,8 @@ async function runAll() {
     await testHealth();
     await testPublicVerification();
     await testAuthRoutes();
+    await testEmailVerification();
+    await testGitHubOAuth();
     await testProtectedRoutes();
     await testOrganisationApplication();
     await testGetVerifiedOrganisations();

@@ -30,6 +30,8 @@ export const updateProfile = async (userId, updateData) => {
         "usn",
         "githubUrl",
         "linkedinUrl",
+        "website",
+        "emailNotificationsEnabled",
         "experience"
     ];
 

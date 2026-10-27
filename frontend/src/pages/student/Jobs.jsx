@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getAllJobs, applyToJob, getMyApplications } from "../../services/employmentService";
+import NotificationBell from "../../components/common/NotificationBell";
+import SettingsModal from "../../components/common/SettingsModal";
+import { FaCog } from "react-icons/fa";
 
 export const formatTimeAgo = (dateValue) => {
   if (!dateValue) return "Recently posted";
@@ -52,6 +55,7 @@ const Jobs = () => {
   const [loading, setLoading] = useState(true);
   const [applyingId, setApplyingId] = useState(null);
   const [statusMessage, setStatusMessage] = useState({ id: null, text: "", type: "" });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Filter States
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -245,6 +249,15 @@ const Jobs = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell />
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(true)}
+              title="Settings & Account"
+              className="p-2 rounded-md border border-[#D9E1E8] bg-white text-[#555555] hover:text-[#0A66C2] hover:bg-[#F3F6F8] transition cursor-pointer"
+            >
+              <FaCog className="text-sm" />
+            </button>
             <Link
               to="/student/offers"
               className="px-3.5 py-1.5 text-xs font-semibold text-[#0A66C2] bg-white border border-[#0A66C2] rounded-md hover:bg-[#E8F3FF] transition"
@@ -260,6 +273,12 @@ const Jobs = () => {
           </div>
         </div>
       </header>
+
+      {/* Global Settings & Preferences Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
 
       {/* Main Container */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

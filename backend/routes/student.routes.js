@@ -1,6 +1,17 @@
 import express from "express";
 
-import { getProfile, getFullProfile, updateProfile } from "../controllers/student.controller.js";
+import {
+    getProfile,
+    getFullProfile,
+    updateProfile
+} from "../controllers/student.controller.js";
+import {
+    initiateGitHubOAuth,
+    handleGitHubCallback,
+    getGitHubStatus,
+    getAuthenticatedGitHubRepos,
+    disconnectGitHub
+} from "../controllers/githubOAuth.controller.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
 import {
@@ -13,7 +24,40 @@ import {
 
 const router = express.Router();
 
-// ─── Student profile ──────────────────────────────────────────────────────────
+// ─── GitHub OAuth Integration ───────────────────────────────────────────────
+router.get(
+    "/github/connect",
+    authenticate,
+    authorizeRoles("STUDENT"),
+    initiateGitHubOAuth
+);
+
+router.get(
+    "/github/callback",
+    handleGitHubCallback
+);
+
+router.get(
+    "/github/status",
+    authenticate,
+    authorizeRoles("STUDENT"),
+    getGitHubStatus
+);
+
+router.get(
+    "/github/repos",
+    authenticate,
+    authorizeRoles("STUDENT"),
+    getAuthenticatedGitHubRepos
+);
+
+router.post(
+    "/github/disconnect",
+    authenticate,
+    authorizeRoles("STUDENT"),
+    disconnectGitHub
+);
+
 router.get(
     "/profile",
     authenticate,

@@ -3,9 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getProfile } from "../../services/studentService";
 import { getCertificates, getCertificateDocument } from "../../services/certificateService";
-import { getStudentProjects } from "../../services/projectService";
+import { getStudentProjects, getGitHubConnectUrl } from "../../services/projectService";
 import { getMyEmployment } from "../../services/employmentService";
 import EditProfileModal, { calculateDuration } from "../../components/student/EditProfileModal";
+import NotificationBell from "../../components/common/NotificationBell";
+import SettingsModal from "../../components/common/SettingsModal";
+import { FaCog } from "react-icons/fa";
 
 const StudentProfile = () => {
   const navigate = useNavigate();
@@ -22,6 +25,7 @@ const StudentProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [viewingCertId, setViewingCertId] = useState(null);
 
   const loadData = async () => {
@@ -262,6 +266,14 @@ const StudentProfile = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell />
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition cursor-pointer"
+              title="Settings & Preferences"
+            >
+              <FaCog className="w-5 h-5" />
+            </button>
             <button
               onClick={() => setIsEditModalOpen(true)}
               className="px-3.5 py-1.5 text-xs font-semibold text-[#0A66C2] bg-white border border-[#0A66C2] rounded-md hover:bg-[#E8F3FF] transition cursor-pointer"
@@ -356,7 +368,19 @@ const StudentProfile = () => {
 
             {/* Resume Links & Edit Button */}
             <div className="flex flex-wrap items-center gap-2 self-start">
-              {user.githubUrl && (
+              {user.githubConnected ? (
+                <a
+                  href={user.githubUrl || `https://github.com/${user.githubUsername}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border border-[#16805D]/30 bg-[#E6F4EA] text-[#137333] hover:bg-[#d6eedb] transition"
+                >
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                  </svg>
+                  <span>@{user.githubUsername} (Connected ✓)</span>
+                </a>
+              ) : user.githubUrl ? (
                 <a
                   href={user.githubUrl}
                   target="_blank"
@@ -365,6 +389,24 @@ const StudentProfile = () => {
                 >
                   GitHub ↗
                 </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const { authUrl } = await getGitHubConnectUrl("/student/profile");
+                      if (authUrl) window.location.href = authUrl;
+                    } catch (err) {
+                      alert(err.response?.data?.message || "GitHub OAuth not configured");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border border-[#D9E1E8] bg-white text-[#191919] hover:bg-[#F3F6F8] transition cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                  </svg>
+                  <span>Connect GitHub</span>
+                </button>
               )}
               {user.linkedinUrl && (
                 <a
@@ -862,6 +904,13 @@ const StudentProfile = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onProfileUpdated={handleProfileUpdated}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onSaved={loadData}
       />
     </div>
   );

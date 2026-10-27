@@ -41,3 +41,46 @@ export const updateProjectStatus = async (id, status, txHash, rejectionReason, e
   });
   return response.data;
 };
+
+// ─── GitHub OAuth Services ───────────────────────────────────────────────────
+
+/**
+ * Initiates GitHub OAuth.
+ * Returns { authUrl, state } to redirect user to official GitHub authorization.
+ */
+export const getGitHubConnectUrl = async (returnUrl = "/student/project/add") => {
+  const response = await api.get(`/student/github/connect?returnUrl=${encodeURIComponent(returnUrl)}`);
+  return response.data; // { success: true, authUrl, state }
+};
+
+/**
+ * Retrieves the current student's GitHub OAuth connection status.
+ */
+export const getGitHubStatus = async () => {
+  const response = await api.get("/student/github/status");
+  return response.data; // { success: true, connected, username, avatarUrl, githubUrl, connectedAt }
+};
+
+/**
+ * Fetches repositories for the authenticated GitHub account.
+ * Repositories are fetched by the backend using the securely stored OAuth token.
+ */
+export const fetchAuthenticatedGitHubRepos = async () => {
+  const response = await api.get("/student/github/repos");
+  return response.data.repos || [];
+};
+
+/**
+ * Disconnects the student's connected GitHub account.
+ */
+export const disconnectGitHub = async () => {
+  const response = await api.post("/student/github/disconnect");
+  return response.data;
+};
+
+/**
+ * Alias for fetching repos (maintains compatibility).
+ */
+export const fetchGitHubRepositories = async () => {
+  return fetchAuthenticatedGitHubRepos();
+};

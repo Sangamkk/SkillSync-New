@@ -23,6 +23,7 @@ import AddProject from "./pages/student/AddProject";
 import RequestVerification from "./pages/student/RequestVerification";
 import MyProjects from "./pages/student/project/MyProjects";
 import ProjectHistory from "./pages/student/project/ProjectHistory";
+import GitHubConnectedPage from "./pages/student/GitHubConnectedPage";
 
 // Organisation Pages
 import OrganisationDashboard from "./pages/Organisation/organizationDashboard";
@@ -53,7 +54,7 @@ function App() {
         <Route path="/verify-qr/:certificateId" element={<CertificateQRPage />} />
         <Route path="/verify/qr/:certificateId" element={<CertificateQRPage />} />
         <Route path="/verify/:certificateId" element={<VerifyCertificate />} />
-        <Route path="/verify-document" element={<VerifyDocument />} />
+        <Route path="/verify-document" element={<Navigate to="/?verify=true" replace />} />
 
         {/* ─── Student Routes ────────────────────────────────────────── */}
         <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
@@ -116,6 +117,16 @@ function App() {
         } />
         <Route path="/student/projects/history" element={<Navigate to="/student/project-history" replace />} />
         <Route path="/student/project/history" element={<Navigate to="/student/project-history" replace />} />
+        <Route path="/student/github-connected" element={
+          <ProtectedRoute requiredRole="STUDENT">
+            <GitHubConnectedPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/student/github/callback" element={
+          <ProtectedRoute requiredRole="STUDENT">
+            <GitHubConnectedPage />
+          </ProtectedRoute>
+        } />
 
         {/* ─── Organisation Routes ───────────────────────────────────── */}
         <Route path="/organisation" element={

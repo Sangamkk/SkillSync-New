@@ -5,6 +5,7 @@ import {
     updateProjectStatusService
 } from "../services/createProjectService.js";
 import Application from "../models/Application.js";
+import { createNotification } from "../services/notificationService.js";
 
 // ─── POST /api/student/projects ───────────────────────────────────────────────
 export const createProject = async (req, res) => {
@@ -17,6 +18,17 @@ export const createProject = async (req, res) => {
             githubLink: req.body.githubLink,
             description: req.body.description,
         });
+
+        // Trigger Notification
+        createNotification({
+            recipient: userId,
+            recipientRole: "STUDENT",
+            type: "PROJECT_ADDED",
+            title: "Project Added",
+            message: `Project "${req.body.projectName}" added to your portfolio.`,
+            link: "/student/projects",
+            metadata: { projectId: project._id },
+        }).catch(() => {});
 
         return res.status(201).json({
             success: true,
@@ -97,6 +109,23 @@ export const updateProjectStatus = async (req, res) => {
                 success: false,
                 message: "Project not found"
             });
+        }
+
+        // Trigger Notification for Student
+        if (project.student) {
+            const isApproved = status === "APPROVED";
+            createNotification({
+                recipient: project.student,
+                recipientRole: "STUDENT",
+                sender: userId,
+                type: isApproved ? "PROJECT_APPROVED" : "PROJECT_REJECTED",
+                title: isApproved ? "Project Verified! 🎉" : "Project Verification Update",
+                message: isApproved
+                    ? `Your project "${project.projectName}" was verified on blockchain.`
+                    : `Your project "${project.projectName}" was rejected. ${rejectionReason || ""}`,
+                link: "/student/projects",
+                metadata: { projectId: project._id, txHash: project.txHash || txHash || "" },
+            }).catch(() => {});
         }
 
         return res.status(200).json({

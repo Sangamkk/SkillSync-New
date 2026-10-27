@@ -4,6 +4,9 @@ import {
     getApplicants,
     createEmploymentOffer,
 } from "../../services/employmentService";
+import NotificationBell from "../../components/common/NotificationBell";
+import SettingsModal from "../../components/common/SettingsModal";
+import { FaCog } from "react-icons/fa";
 
 const STATUS_CONFIG = {
     Applied: { label: "Applied", bg: "bg-[#E8F3FF] text-[#0A66C2] border-[#0A66C2]/20" },
@@ -15,6 +18,7 @@ const STATUS_CONFIG = {
 function Applicants() {
     const { jobId } = useParams();
     const navigate = useNavigate();
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const [applicants, setApplicants] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -131,6 +135,15 @@ function Applicants() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <NotificationBell />
+                        <button
+                            type="button"
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition cursor-pointer"
+                            title="Settings & Preferences"
+                        >
+                            <FaCog className="w-5 h-5" />
+                        </button>
                         <Link
                             to="/organisation"
                             className="rounded-md border border-[#D9E1E8] bg-white px-3 py-1.5 text-xs font-semibold text-[#191919] hover:bg-[#F3F6F8] transition"
@@ -420,6 +433,10 @@ function Applicants() {
                     </div>
                 )}
             </div>
+            <SettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+            />
         </div>
     );
 }

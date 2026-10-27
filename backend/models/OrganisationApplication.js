@@ -54,6 +54,25 @@ const organisationApplicationSchema = new mongoose.Schema(
             default: ""
         },
 
+        emailVerified: {
+            type: Boolean,
+            default: true
+        },
+
+        emailNotificationsEnabled: {
+            type: Boolean,
+            default: true
+        },
+
+        notificationPreferences: {
+            jobOffers: { type: Boolean, default: true },
+            jobPostings: { type: Boolean, default: true },
+            applications: { type: Boolean, default: true },
+            certificates: { type: Boolean, default: true },
+            verifications: { type: Boolean, default: true },
+            projects: { type: Boolean, default: true },
+        },
+
         status: {
             type: String,
             enum: [

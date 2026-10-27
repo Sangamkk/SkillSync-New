@@ -14,11 +14,37 @@
   }
 
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     color: #191919;
     background-color: #FFFFFF;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* =====================================================
+   PREMIUM CARD & INTERACTIVE BOX HOVER UTILITIES
+   ===================================================== */
+.card-hover-effect {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-hover-effect:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px -6px rgba(37, 99, 235, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+    border-color: rgba(147, 197, 253, 0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hover-effect,
+  .card-hover-effect:hover {
+    transform: none !important;
+    transition: none !important;
   }
 }
 
@@ -152,3 +178,22 @@
   color: #004182;
   text-decoration: underline;
 }
+
+/* =====================================================
+   NOTIFICATION BELL MICRO-ANIMATIONS
+   ===================================================== */
+@keyframes bell-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(12deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(6deg); }
+  80% { transform: rotate(-6deg); }
+}
+
+.animate-wiggle {
+  animation: bell-wiggle 1.8s ease-in-out infinite;
+}
+
+#notification-bell-btn:hover .animate-wiggle {
+  animation: bell-wiggle 0.6s ease-in-out;
+}

@@ -8,10 +8,13 @@ import {
 } from "../../services/employmentService";
 
 import MeshBackground from "../../components/common/MeshBackground";
-
+import NotificationBell from "../../components/common/NotificationBell";
+import SettingsModal from "../../components/common/SettingsModal";
+import { FaCog } from "react-icons/fa";
 
 function StudentOffers() {
     const navigate = useNavigate();
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const [offers, setOffers] = useState([]);
 
@@ -153,16 +156,31 @@ function StudentOffers() {
                             ← Back
                         </button>
 
-                        <Link
-                            to="/student/dashboard"
-                            className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition ${
-                                darkMode
-                                    ? "border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
-                                    : "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 shadow-sm"
-                            }`}
-                        >
-                            <span>👤</span> Profile Dashboard
-                        </Link>
+                        <div className="flex items-center gap-3">
+                            <NotificationBell />
+                            <button
+                                type="button"
+                                onClick={() => setIsSettingsOpen(true)}
+                                className={`p-2 rounded-full transition cursor-pointer ${
+                                    darkMode
+                                        ? "text-slate-400 hover:text-white hover:bg-white/10"
+                                        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                                }`}
+                                title="Settings & Preferences"
+                            >
+                                <FaCog className="w-5 h-5" />
+                            </button>
+                            <Link
+                                to="/student/dashboard"
+                                className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition ${
+                                    darkMode
+                                        ? "border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
+                                        : "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 shadow-sm"
+                                }`}
+                            >
+                                <span>👤</span> Profile Dashboard
+                            </Link>
+                        </div>
                     </div>
 
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-500">
@@ -444,7 +462,10 @@ function StudentOffers() {
                 )}
 
             </div>
-
+            <SettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+            />
         </div>
 
     );

@@ -13,6 +13,7 @@ import mlRoutes from "../routes/ml.routes.js";
 import verificationRequestRoutes from "../routes/verificationRequest.routes.js";
 import publicRoutes from "../routes/public.routes.js";
 import studentsPublicRoutes from "../routes/studentsPublic.routes.js";
+import notificationRoutes from "../routes/notification.routes.js";
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/api/ml", mlRoutes);
 app.use("/api/verification-requests", verificationRequestRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/students", studentsPublicRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (req, res) => {

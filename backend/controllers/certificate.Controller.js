@@ -10,6 +10,7 @@ import { uploadToCloudinary } from "../services/cloudinaryService.js";
 import { certificateManager } from "../blockchain/contracts.js";
 import { getRawPublicId } from "../utils/cloudinaryUtils.js";
 import { resolveCertificatesWithOnChain } from "../services/blockchainSync.service.js";
+import { createNotification } from "../services/notificationService.js";
 
 // ─── Credential Type map (matches Types.CredentialType enum) ─────────────────
 const CREDENTIAL_TYPE_MAP = {
@@ -105,6 +106,17 @@ export const uploadCertificate = async (req, res) => {
     });
 
     console.log(`[CERTIFICATE] Uploaded certificate ${certificate._id}, hash: ${hashBytes32}`);
+
+    // Trigger Notification for Student
+    createNotification({
+      recipient: studentId,
+      recipientRole: "STUDENT",
+      type: "CERTIFICATE_UPLOADED",
+      title: "Certificate Uploaded",
+      message: `Certificate "${certificateName}" uploaded successfully. You can now request verification from an organisation.`,
+      link: "/student/certificates",
+      metadata: { certificateId: certificate._id, certificateHash: hashBytes32 },
+    }).catch(() => {});
 
     return res.status(201).json({
       success: true,
@@ -482,6 +494,23 @@ export const updateCertificateStatus = async (req, res) => {
         .json({ success: false, message: "Certificate not found" });
     }
 
+    // Trigger Notification for Student
+    if (certificate.student) {
+      const isApproved = status === "Verified";
+      createNotification({
+        recipient: certificate.student,
+        recipientRole: "STUDENT",
+        sender: req.user?.userId || req.user?._id || null,
+        type: isApproved ? "VERIFICATION_APPROVED" : "VERIFICATION_REJECTED",
+        title: isApproved ? "Certificate Verified! 🎉" : "Certificate Update",
+        message: isApproved
+          ? `Your certificate "${certificate.certificateName}" was verified on blockchain.`
+          : `Your certificate "${certificate.certificateName}" was marked as ${status}. ${rejectionReason || ""}`,
+        link: "/student/certificates",
+        metadata: { certificateId: certificate._id, certificateHash },
+      }).catch(() => {});
+    }
+
     return res.status(200).json({
       success: true,
       message: `Certificate status updated to ${status}`,
@@ -674,6 +703,31 @@ export const issueCertificate = async (req, res) => {
     });
 
     console.log(`[CERTIFICATE] Organisation-issued certificate saved: ${certificate._id}`);
+
+    // Trigger Notifications
+    createNotification({
+      recipient: student._id,
+      recipientRole: "STUDENT",
+      sender: orgId,
+      senderName: organisation.organisationName,
+      type: "CERTIFICATE_ISSUED",
+      title: "New Certificate Issued! 📜",
+      message: `${organisation.organisationName} issued verified certificate "${certificateName}" to your portfolio. Recorded on blockchain.`,
+      link: "/student/certificates",
+      metadata: { certificateId: certificate._id, txHash: transaction.hash, certificateHash: hashBytes32 },
+    }).catch(() => {});
+
+    createNotification({
+      recipient: orgId,
+      recipientRole: "ORGANISATION",
+      sender: student._id,
+      senderName: student.name,
+      type: "CERTIFICATE_ISSUED",
+      title: "Certificate Issued",
+      message: `Successfully issued credential "${certificateName}" to ${student.name} on blockchain.`,
+      link: "/organisation?section=issue-cert",
+      metadata: { certificateId: certificate._id, txHash: transaction.hash, studentId: student._id },
+    }).catch(() => {});
 
     return res.status(201).json({
       success: true,

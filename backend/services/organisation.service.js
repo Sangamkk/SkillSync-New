@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { ethers } from "ethers";
 import OrganisationApplication from "../models/OrganisationApplication.js";
 import { organisationRegistry } from "../blockchain/contracts.js";
+import { createNotification } from "./notificationService.js";
 
 // ─── ORGANISATION TYPE MAP ────────────────────────────────────────────────────
 // Maps from OrganisationType string to Types.OrganizationType enum (0-5)
@@ -169,6 +170,18 @@ export const approveApplicationService = async (id) => {
   application.blockchainBlockNumber = receipt.blockNumber;
   await application.save();
 
+  // Trigger Notification for Organisation
+  createNotification({
+    recipient: application._id,
+    recipientRole: "ORGANISATION",
+    type: "APPLICATION_APPROVED",
+    isImportant: true,
+    title: "Organisation Application Approved! 🏛️",
+    message: `Congratulations! ${application.organisationName} has been verified and registered on the blockchain. You can now issue credentials, post jobs, and manage employees.`,
+    link: "/organisation",
+    metadata: { organisationId, txHash: transaction.hash },
+  }).catch(() => {});
+
   const appObj = application.toObject();
   delete appObj.password;
 
@@ -199,6 +212,17 @@ export const rejectApplicationService = async (id, rejectionReason) => {
     err.statusCode = 404;
     throw err;
   }
+
+  // Trigger Notification for Organisation
+  createNotification({
+    recipient: application._id,
+    recipientRole: "ORGANISATION",
+    type: "APPLICATION_REJECTED",
+    title: "Organisation Application Update",
+    message: rejectionReason || "Your application was reviewed and could not be approved at this time.",
+    link: "/organisation",
+    metadata: { applicationId: application._id },
+  }).catch(() => {});
 
   const { password: _p, ...rest } = application;
   return rest;

@@ -2,9 +2,13 @@ import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getMyJobs, deleteJob } from "../../services/employmentService";
 import { formatTimeAgo, formatJobDate, formatSalary } from "../student/Jobs";
+import NotificationBell from "../../components/common/NotificationBell";
+import SettingsModal from "../../components/common/SettingsModal";
+import { FaCog } from "react-icons/fa";
 
 function MyJobs() {
   const navigate = useNavigate();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +123,14 @@ function MyJobs() {
           </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell />
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition cursor-pointer"
+              title="Settings & Preferences"
+            >
+              <FaCog className="w-5 h-5" />
+            </button>
             <Link
               to="/organisation/create-job"
               className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#0A66C2] hover:bg-[#004182] rounded-md transition shadow-xs cursor-pointer"
@@ -346,6 +358,10 @@ function MyJobs() {
           </div>
         )}
       </main>
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 }

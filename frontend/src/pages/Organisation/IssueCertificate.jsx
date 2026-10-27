@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { issueCertificate } from "../../services/certificateService";
 import { lookupStudent } from "../../services/studentService";
+import NotificationBell from "../../components/common/NotificationBell";
+import SettingsModal from "../../components/common/SettingsModal";
+import { FaCog } from "react-icons/fa";
 
 const CERT_TYPES = [
   "Course",
@@ -17,6 +20,7 @@ const CERT_TYPES = [
 
 const IssueCertificate = () => {
   const navigate = useNavigate();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [form, setForm] = useState({
     studentIdentifier: "",
@@ -200,6 +204,15 @@ const IssueCertificate = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <NotificationBell />
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition cursor-pointer"
+              title="Settings & Preferences"
+            >
+              <FaCog className="w-5 h-5" />
+            </button>
             <Link
               to="/organisation"
               className="rounded-md border border-[#D9E1E8] bg-white px-3 py-1.5 text-xs font-semibold text-[#191919] hover:bg-[#F3F6F8] transition"
@@ -544,6 +557,10 @@ const IssueCertificate = () => {
           </form>
         </div>
       </div>
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 };

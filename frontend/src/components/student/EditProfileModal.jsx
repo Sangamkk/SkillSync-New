@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { updateProfile } from "../../services/studentService";
+import { getGitHubConnectUrl } from "../../services/projectService";
 import { useAuth } from "../../context/AuthContext";
 
 export const calculateDuration = (startDate, endDate, current) => {
@@ -287,7 +288,29 @@ const EditProfileModal = ({ isOpen, onClose, onProfileUpdated }) => {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>GitHub URL</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={labelClass}>GitHub URL</label>
+                    {currentUser.githubConnected ? (
+                      <span className="text-[10px] font-semibold text-[#16805D] bg-[#E6F4EA] px-2 py-0.5 rounded-full border border-[#16805D]/20">
+                        ✓ @{currentUser.githubUsername} Linked
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const { authUrl } = await getGitHubConnectUrl("/student/profile");
+                            if (authUrl) window.location.href = authUrl;
+                          } catch (err) {
+                            alert(err.response?.data?.message || "Could not connect with GitHub");
+                          }
+                        }}
+                        className="text-[11px] font-semibold text-[#0A66C2] hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <span>Connect GitHub</span> ↗
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="url"
                     name="githubUrl"
